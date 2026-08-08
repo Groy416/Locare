@@ -6,10 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useRole } from "@/lib/role-context";
 import { useCart } from "@/lib/cart-context";
+import { useTheme } from "@/lib/theme-context";
 
 const customerNav = [
-  { href: "/customer", label: "Browse Catalog" },
-  { href: "/customer/bookings", label: "My Bookings" },
+  { href: "/customer", label: "Products" },
+  { href: "/customer/terms", label: "Terms & Condition" },
+  { href: "/customer/about", label: "About us" },
+  { href: "/customer/contact", label: "Contact Us" },
 ];
 
 const adminNav = [
@@ -24,12 +27,23 @@ export default function Header() {
   const { data: session } = useSession();
   const { role, setRole } = useRole();
   const { itemCount } = useCart();
+  const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [wishlistCount] = useState(2);
+
   const activeRole = (session?.user as { role?: string })?.role || role;
   const navItems = activeRole === "admin" || activeRole === "vendor" ? adminNav : customerNav;
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/customer?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   const handleRoleToggle = (targetRole: "admin" | "customer") => {
     setRole(targetRole);
@@ -55,21 +69,22 @@ export default function Header() {
       <div className="header-inner">
         {/* Logo */}
         <Link href={activeRole === "customer" ? "/customer" : "/admin"} className="logo">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="logo-icon"
-          >
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-          <span className="logo-text">Locare ERP</span>
+          <div className="logo-badge">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
+          <span className="logo-text">Your Logo</span>
         </Link>
 
         {/* Navigation Links */}
@@ -87,24 +102,55 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
-
-          {activeRole === "customer" && (
-            <Link
-              href="/customer/cart"
-              className={`nav-link nav-cart-link ${
-                pathname === "/customer/cart" ? "nav-link-active" : ""
-              }`}
-            >
-              🛒 Cart
-              {itemCount > 0 && (
-                <span className="nav-cart-badge">{itemCount}</span>
-              )}
-            </Link>
-          )}
         </nav>
 
-        {/* User Profile & Role Switcher */}
-        <div className="role-switcher">
+        {/* Search Bar */}
+        {activeRole === "customer" && (
+          <form onSubmit={handleSearchSubmit} className="header-search-form">
+            <input
+              type="text"
+              className="header-search-input"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="header-search-btn" title="Search">
+              🔍
+            </button>
+          </form>
+        )}
+
+        {/* Right Header Actions */}
+        <div className="header-actions">
+          {/* Day / Night Theme Toggle */}
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Switch to Day Mode" : "Switch to Night Mode"}
+          >
+            {theme === "dark" ? "☀️ Day" : "🌙 Night"}
+          </button>
+
+          {/* Customer Wishlist & Cart */}
+          {activeRole === "customer" && (
+            <>
+              <Link href="/customer/wishlist" className="header-action-icon" title="Wishlist">
+                ♡
+                {wishlistCount > 0 && (
+                  <span className="header-action-badge">{wishlistCount}</span>
+                )}
+              </Link>
+
+              <Link href="/customer/cart" className="header-action-icon" title="Cart">
+                🛒
+                {itemCount > 0 && (
+                  <span className="header-action-badge">{itemCount}</span>
+                )}
+              </Link>
+            </>
+          )}
+
+          {/* Profile Dropdown */}
           <div className="profile-dropdown-wrapper">
             <button
               className="profile-avatar-btn"
@@ -124,17 +170,32 @@ export default function Header() {
                 </div>
                 <div className="profile-dropdown-divider" />
                 <Link
-                  href="/admin/settings"
+                  href="/customer/profile"
                   className="profile-dropdown-item"
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  Profile & Settings
+                  My account / My Profile
                 </Link>
+                <Link
+                  href="/customer/bookings"
+                  className="profile-dropdown-item"
+                  onClick={() => setShowProfileMenu(false)}
+                >
+                  My Orders
+                </Link>
+                <Link
+                  href="/customer/settings"
+                  className="profile-dropdown-item"
+                  onClick={() => setShowProfileMenu(false)}
+                >
+                  Settings
+                </Link>
+                <div className="profile-dropdown-divider" />
                 <button
                   className="profile-dropdown-item logout"
                   onClick={() => {
                     setShowProfileMenu(false);
-                    signOut({ callbackUrl: "/auth/login" });
+                    signOut({ callbackUrl: "/customer" });
                   }}
                 >
                   Logout
@@ -143,23 +204,26 @@ export default function Header() {
             )}
           </div>
 
-          <div className="role-toggle" role="radiogroup" aria-label="Role switcher">
-            <button
-              role="radio"
-              aria-checked={activeRole === "customer"}
-              onClick={() => handleRoleToggle("customer")}
-              className={`role-btn ${activeRole === "customer" ? "role-btn-active" : ""}`}
-            >
-              👤 Customer
-            </button>
-            <button
-              role="radio"
-              aria-checked={activeRole === "admin" || activeRole === "vendor"}
-              onClick={() => handleRoleToggle("admin")}
-              className={`role-btn ${activeRole === "admin" || activeRole === "vendor" ? "role-btn-active" : ""}`}
-            >
-              🛡️ ERP Admin
-            </button>
+          {/* Role Switcher */}
+          <div className="role-switcher">
+            <div className="role-toggle" role="radiogroup" aria-label="Role switcher">
+              <button
+                role="radio"
+                aria-checked={activeRole === "customer"}
+                onClick={() => handleRoleToggle("customer")}
+                className={`role-btn ${activeRole === "customer" ? "role-btn-active" : ""}`}
+              >
+                Customer
+              </button>
+              <button
+                role="radio"
+                aria-checked={activeRole === "admin" || activeRole === "vendor"}
+                onClick={() => handleRoleToggle("admin")}
+                className={`role-btn ${activeRole === "admin" || activeRole === "vendor" ? "role-btn-active" : ""}`}
+              >
+                Admin
+              </button>
+            </div>
           </div>
         </div>
       </div>
