@@ -6,6 +6,20 @@ export async function GET() {
   try {
     let dbProducts = await prisma.product.findMany({
       orderBy: { name: "asc" },
+      include: {
+        variants: {
+          include: {
+            attributeValues: {
+              include: {
+                attributeValue: {
+                  include: { attribute: true },
+                },
+              },
+            },
+          },
+        },
+        categoryRef: true,
+      },
     });
 
     // Auto-seed database if empty
@@ -27,6 +41,20 @@ export async function GET() {
       }
       dbProducts = await prisma.product.findMany({
         orderBy: { name: "asc" },
+        include: {
+          variants: {
+            include: {
+              attributeValues: {
+                include: {
+                  attributeValue: {
+                    include: { attribute: true },
+                  },
+                },
+              },
+            },
+          },
+          categoryRef: true,
+        },
       });
     }
 
@@ -49,6 +77,8 @@ export async function POST(request: Request) {
       securityDeposit,
       inStock,
       image,
+      imageUrl,
+      categoryId,
     } = body;
 
     if (!name || !description || !category || !rentalUnit || price === undefined || securityDeposit === undefined || inStock === undefined) {
@@ -64,10 +94,26 @@ export async function POST(request: Request) {
         description,
         category,
         image: image || "/images/placeholder.jpg",
+        imageUrl: imageUrl || null,
         rentalUnit,
         price: parseFloat(price),
         securityDeposit: parseFloat(securityDeposit),
         inStock: parseInt(inStock, 10),
+        categoryId: categoryId || null,
+      },
+      include: {
+        variants: {
+          include: {
+            attributeValues: {
+              include: {
+                attributeValue: {
+                  include: { attribute: true },
+                },
+              },
+            },
+          },
+        },
+        categoryRef: true,
       },
     });
 
@@ -80,4 +126,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

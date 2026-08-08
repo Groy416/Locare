@@ -25,22 +25,73 @@ model User {
   rentalOrders    RentalOrder[]
 }
 
+// ─── Category Model ──────────────────────────────────────────────────────────
+model Category {
+  id         String      @id @default(cuid())
+  name       String
+  products   Product[]
+  attributes Attribute[]
+}
+
+// ─── Attribute Model ──────────────────────────────────────────────────────────
+model Attribute {
+  id         String           @id @default(cuid())
+  name       String
+  categoryId String
+  category   Category         @relation(fields: [categoryId], references: [id])
+  values     AttributeValue[]
+}
+
+// ─── AttributeValue Model ─────────────────────────────────────────────────────
+model AttributeValue {
+  id          String                         @id @default(cuid())
+  attributeId String
+  attribute   Attribute                      @relation(fields: [attributeId], references: [id])
+  value       String
+  variants    ProductVariantAttributeValue[]
+}
+
 // ─── Product Model ───────────────────────────────────────────────────────────
 model Product {
-  id              String      @id @default(uuid())
+  id              String           @id @default(uuid())
   name            String
   description     String
   category        String
-  image           String      // image path or SVG illustration
-  rentalUnit      String      @default("day") // "hour" | "day" | "week" | "month"
-  price           Float       // per rental unit
+  image           String // image path or SVG illustration
+  imageUrl        String? // uploaded image URL (from /api/upload)
+  rentalUnit      String           @default("day") // "hour" | "day" | "week" | "month"
+  price           Float // per rental unit
   securityDeposit Float
   inStock         Int
   vendorId        String?
-  vendor          User?       @relation(fields: [vendorId], references: [id])
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  vendor          User?            @relation(fields: [vendorId], references: [id])
+  categoryId      String? // optional FK to Category model
+  categoryRef     Category?        @relation(fields: [categoryId], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   orderLines      OrderLine[]
+  variants        ProductVariant[]
+}
+
+// ─── ProductVariant Model ─────────────────────────────────────────────────────
+model ProductVariant {
+  id              String                         @id @default(cuid())
+  productId       String
+  product         Product                        @relation(fields: [productId], references: [id])
+  sku             String
+  price           Float
+  stock           Int
+  attributeValues ProductVariantAttributeValue[]
+}
+
+// ─── ProductVariantAttributeValue (join table) ────────────────────────────────
+model ProductVariantAttributeValue {
+  variantId        String
+  variant          ProductVariant @relation(fields: [variantId], references: [id])
+  attributeValueId String
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id])
+
+  @@id([variantId, attributeValueId])
 }
 
 // ─── Product Attribute Model ──────────────────────────────────────────────────
@@ -48,7 +99,7 @@ model ProductAttribute {
   id          String   @id @default(uuid())
   name        String
   displayType String   @default("radio") // "radio" | "pills" | "select"
-  values      String   // JSON string of options
+  values      String // JSON string of options
   createdAt   DateTime @default(now())
 }
 
@@ -58,7 +109,7 @@ model QuotationTemplate {
   name          String
   validityDays  Int      @default(30)
   paymentTerms  String   @default("Immediate Payment")
-  templateLines String   // JSON array of default products & quantities
+  templateLines String // JSON array of default products & quantities
   createdAt     DateTime @default(now())
 }
 
@@ -73,8 +124,8 @@ model RentalOrder {
   customerName    String
   invoiceAddress  String?
   deliveryAddress String?
-  rentalStart     String      // YYYY-MM-DD format
-  rentalEnd       String      // YYYY-MM-DD format
+  rentalStart     String // YYYY-MM-DD format
+  rentalEnd       String // YYYY-MM-DD format
   deliveryMethod  String      @default("delivery") // "pickup" | "delivery"
   priceList       String      @default("Standard")
   status          String      @default("QUOTATION")
@@ -122,14 +173,14 @@ model Invoice {
 
 // ─── Late Fee & Settings Configuration ───────────────────────────────────────
 model PickupReturnSetting {
-  id                 String   @id @default("default")
-  dailyRate          Float    @default(15)
-  hourlyRate         Float    @default(2.5)
-  gracePeriodDays    Int      @default(1)
-  enableVendors      Boolean  @default(true)
-  enableAttributes   Boolean  @default(true)
-  enablePriceLists   Boolean  @default(true)
-  updatedAt          DateTime @updatedAt
+  id               String   @id @default("default")
+  dailyRate        Float    @default(15)
+  hourlyRate       Float    @default(2.5)
+  gracePeriodDays  Int      @default(1)
+  enableVendors    Boolean  @default(true)
+  enableAttributes Boolean  @default(true)
+  enablePriceLists Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
 }
 
 // Backwards compatibility alias for existing query logic

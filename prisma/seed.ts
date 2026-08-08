@@ -18,7 +18,12 @@ async function main() {
   await prisma.rentalOrder.deleteMany();
   await prisma.productAttribute.deleteMany();
   await prisma.quotationTemplate.deleteMany();
+  await prisma.productVariantAttributeValue.deleteMany();
+  await prisma.productVariant.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.attributeValue.deleteMany();
+  await prisma.attribute.deleteMany();
+  await prisma.category.deleteMany();
   await prisma.user.deleteMany();
   await prisma.pickupReturnSetting.deleteMany();
   await prisma.lateFeeConfig.deleteMany();
@@ -379,6 +384,168 @@ async function main() {
       amountPaid: 731.5,
     },
   });
+
+  // ── 8. Seed Categories, Attributes, AttributeValues, Products & Variants ──
+
+  const catClothing = await prisma.category.create({ data: { name: "Clothing" } });
+  const catFootwear = await prisma.category.create({ data: { name: "Footwear" } });
+
+  // Clothing attributes
+  const attrCSize = await prisma.attribute.create({ data: { name: "Size", categoryId: catClothing.id } });
+  const attrCColor = await prisma.attribute.create({ data: { name: "Color", categoryId: catClothing.id } });
+
+  // Footwear attributes
+  const attrFSize = await prisma.attribute.create({ data: { name: "Size", categoryId: catFootwear.id } });
+  const attrFBrand = await prisma.attribute.create({ data: { name: "Brand", categoryId: catFootwear.id } });
+
+  // Clothing attribute values
+  const [cS, cM, cL, cXL] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "S" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "M" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "L" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "XL" } }),
+  ]);
+  const [cRed, cBlue, cBlack] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Red" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Blue" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Black" } }),
+  ]);
+
+  // Footwear attribute values
+  const [fUK6, fUK7, fUK8, fUK9, fUK10, fUK11] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK6" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK7" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK8" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK9" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK10" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK11" } }),
+  ]);
+  const [fNike, fAdidas] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrFBrand.id, value: "Nike" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFBrand.id, value: "Adidas" } }),
+  ]);
+
+  // Clothing Product 1: Formal Shirt
+  const shirt = await prisma.product.create({
+    data: {
+      id: "cat-prod-001",
+      name: "Formal Dress Shirt",
+      description: "Premium cotton formal shirt available in multiple sizes and colors.",
+      category: "Clothing",
+      image: "/images/placeholder.jpg",
+      rentalUnit: "day",
+      price: 8,
+      securityDeposit: 30,
+      inStock: 20,
+      categoryId: catClothing.id,
+    },
+  });
+
+  // Shirt variants: S/Red, M/Blue, L/Black
+  const shirtV1 = await prisma.productVariant.create({ data: { productId: shirt.id, sku: "SHIRT-S-RED", price: 8, stock: 5 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: shirtV1.id, attributeValueId: cS.id },
+    { variantId: shirtV1.id, attributeValueId: cRed.id },
+  ]});
+  const shirtV2 = await prisma.productVariant.create({ data: { productId: shirt.id, sku: "SHIRT-M-BLUE", price: 8, stock: 8 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: shirtV2.id, attributeValueId: cM.id },
+    { variantId: shirtV2.id, attributeValueId: cBlue.id },
+  ]});
+  const shirtV3 = await prisma.productVariant.create({ data: { productId: shirt.id, sku: "SHIRT-L-BLACK", price: 9, stock: 7 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: shirtV3.id, attributeValueId: cL.id },
+    { variantId: shirtV3.id, attributeValueId: cBlack.id },
+  ]});
+
+  // Clothing Product 2: Casual Tee
+  const tee = await prisma.product.create({
+    data: {
+      id: "cat-prod-002",
+      name: "Casual Cotton Tee",
+      description: "Comfortable everyday cotton t-shirt for casual wear.",
+      category: "Clothing",
+      image: "/images/placeholder.jpg",
+      rentalUnit: "day",
+      price: 5,
+      securityDeposit: 15,
+      inStock: 30,
+      categoryId: catClothing.id,
+    },
+  });
+
+  const teeV1 = await prisma.productVariant.create({ data: { productId: tee.id, sku: "TEE-M-RED", price: 5, stock: 10 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: teeV1.id, attributeValueId: cM.id },
+    { variantId: teeV1.id, attributeValueId: cRed.id },
+  ]});
+  const teeV2 = await prisma.productVariant.create({ data: { productId: tee.id, sku: "TEE-XL-BLACK", price: 5, stock: 20 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: teeV2.id, attributeValueId: cXL.id },
+    { variantId: teeV2.id, attributeValueId: cBlack.id },
+  ]});
+
+  // Footwear Product 1: Running Shoe
+  const runShoe = await prisma.product.create({
+    data: {
+      id: "cat-prod-003",
+      name: "Running Shoe",
+      description: "Lightweight performance running shoe with cushioned sole.",
+      category: "Footwear",
+      image: "/images/placeholder.jpg",
+      rentalUnit: "day",
+      price: 12,
+      securityDeposit: 50,
+      inStock: 15,
+      categoryId: catFootwear.id,
+    },
+  });
+
+  const runV1 = await prisma.productVariant.create({ data: { productId: runShoe.id, sku: "RUN-UK8-NIKE", price: 12, stock: 5 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: runV1.id, attributeValueId: fUK8.id },
+    { variantId: runV1.id, attributeValueId: fNike.id },
+  ]});
+  const runV2 = await prisma.productVariant.create({ data: { productId: runShoe.id, sku: "RUN-UK9-ADIDAS", price: 12, stock: 5 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: runV2.id, attributeValueId: fUK9.id },
+    { variantId: runV2.id, attributeValueId: fAdidas.id },
+  ]});
+  const runV3 = await prisma.productVariant.create({ data: { productId: runShoe.id, sku: "RUN-UK10-NIKE", price: 13, stock: 5 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: runV3.id, attributeValueId: fUK10.id },
+    { variantId: runV3.id, attributeValueId: fNike.id },
+  ]});
+
+  // Footwear Product 2: Formal Oxford
+  const oxford = await prisma.product.create({
+    data: {
+      id: "cat-prod-004",
+      name: "Formal Oxford Shoe",
+      description: "Classic leather Oxford shoe for formal occasions.",
+      category: "Footwear",
+      image: "/images/placeholder.jpg",
+      rentalUnit: "day",
+      price: 15,
+      securityDeposit: 60,
+      inStock: 10,
+      categoryId: catFootwear.id,
+    },
+  });
+
+  const oxV1 = await prisma.productVariant.create({ data: { productId: oxford.id, sku: "OXF-UK7-ADIDAS", price: 15, stock: 4 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: oxV1.id, attributeValueId: fUK7.id },
+    { variantId: oxV1.id, attributeValueId: fAdidas.id },
+  ]});
+  const oxV2 = await prisma.productVariant.create({ data: { productId: oxford.id, sku: "OXF-UK11-NIKE", price: 16, stock: 6 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: oxV2.id, attributeValueId: fUK11.id },
+    { variantId: oxV2.id, attributeValueId: fNike.id },
+  ]});
+
+  // suppress unused variable warnings
+  void cXL; void fUK6;
 
   console.log("ERP Seeding finished successfully!");
 }

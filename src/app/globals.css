@@ -2276,7 +2276,6 @@ body {
   color: var(--text-primary);
 }
 
-=======
 .filter-chip {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -4060,3 +4059,24 @@ body {
 }
 
 
+
+/* ─── Product Card Skeleton ─────────────────────────────────────────────────── */
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.skeleton-block {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-card .product-card-body {
+  padding: 16px 20px 20px;
+}
