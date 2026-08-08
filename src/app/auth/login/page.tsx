@@ -20,35 +20,26 @@ function LoginContent() {
     setLoading(true);
 
     const cleanEmail = loginEmail.trim().toLowerCase();
+    const cleanPass = loginPass.trim();
 
     try {
       const res = await signIn("credentials", {
         email: cleanEmail,
-        password: loginPass.trim(),
+        password: cleanPass,
         redirect: false,
       });
 
       setLoading(false);
 
       if (res?.error) {
-        // Fail-safe check for demo accounts
-        if (cleanEmail === "admin@locare.com" || cleanEmail === "vendor@locare.com" || cleanEmail === "customer@locare.com") {
-          const target = redirectTarget || fallbackTarget;
-          window.location.href = target;
-        } else {
-          setError("Invalid User ID or Password.");
-        }
+        setError("Invalid User ID or Password.");
       } else {
         const target = redirectTarget || fallbackTarget;
         window.location.href = target;
       }
     } catch {
       setLoading(false);
-      if (cleanEmail === "admin@locare.com" || cleanEmail === "vendor@locare.com" || cleanEmail === "customer@locare.com") {
-        window.location.href = redirectTarget || fallbackTarget;
-      } else {
-        setError("An unexpected error occurred during login.");
-      }
+      setError("An unexpected error occurred during login.");
     }
   };
 

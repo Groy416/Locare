@@ -12,67 +12,67 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        if (!credentials?.email || !credentials?.password) return null;
 
         const cleanEmail = credentials.email.toLowerCase().trim();
-        const cleanPassword = (credentials.password || "").trim();
+        const cleanPassword = credentials.password.trim();
 
-        // 1. Instant check for Demo Accounts (Admin, Vendor, Customer)
-        if (
-          cleanEmail === "customer@locare.com" ||
-          cleanEmail === "vendor@locare.com" ||
-          cleanEmail === "admin@locare.com"
-        ) {
-          const role = cleanEmail.startsWith("customer")
-            ? "customer"
-            : cleanEmail.startsWith("vendor")
-            ? "vendor"
-            : "admin";
+        if (!cleanEmail || !cleanPassword) return null;
 
-          let dbUser = null;
-          try {
-            dbUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
-          } catch (e) {
-            console.error("Demo auth DB check error:", e);
-          }
-
-          return {
-            id: dbUser?.id || `demo-${role}-id`,
-            name: dbUser?.name || `${role.toUpperCase()} User`,
-            email: cleanEmail,
-            role: role,
-          };
-        }
-
-        // 2. Database lookup for custom registered users
         try {
+          // Look up user in database
           const user = await prisma.user.findUnique({
             where: { email: cleanEmail },
           });
 
-          if (!user) return null;
+          // Demo accounts default password mapping
+          const demoPasswords: Record<string, string> = {
+            "admin@locare.com": "admin123",
+            "vendor@locare.com": "vendor123",
+            "customer@locare.com": "customer123",
+          };
 
-          let isValid = false;
-          if (user.passwordHash && cleanPassword) {
-            try {
-              isValid =
-                (await bcrypt.compare(cleanPassword, user.passwordHash)) ||
-                (await bcrypt.compare(credentials.password, user.passwordHash));
-            } catch {
-              isValid = true;
+          // 1. If user exists in DB, compare against passwordHash or demo password
+          if (user && user.passwordHash) {
+            let isValid = await bcrypt.compare(cleanPassword, user.passwordHash);
+            if (!isValid && demoPasswords[cleanEmail]) {
+              isValid = cleanPassword === demoPasswords[cleanEmail];
             }
-          } else {
-            isValid = true;
+
+            if (!isValid) {
+              return null; // Incorrect password -> Reject!
+            }
+
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            };
           }
 
-          if (!isValid) return null;
+          // 2. If user is a demo account not yet in DB, validate demo password
+          if (!user && demoPasswords[cleanEmail]) {
+            if (cleanPassword !== demoPasswords[cleanEmail]) {
+              return null; // Incorrect password for demo account -> Reject!
+            }
 
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          };
+            const role = cleanEmail.startsWith("customer")
+              ? "customer"
+              : cleanEmail.startsWith("vendor")
+              ? "vendor"
+              : "admin";
+
+            return {
+              id: `demo-${role}-id`,
+              name: `${role.toUpperCase()} User`,
+              email: cleanEmail,
+              role: role,
+            };
+          }
+
+          // User not found -> Reject!
+          return null;
         } catch (error) {
           console.error("Authorize error:", error);
           return null;
