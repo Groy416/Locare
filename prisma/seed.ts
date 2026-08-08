@@ -24,7 +24,7 @@ async function main() {
   await prisma.attributeValue.deleteMany();
   await prisma.attribute.deleteMany();
   await prisma.category.deleteMany();
-  await prisma.user.deleteMany();
+  // Keep registered user accounts intact
   await prisma.pickupReturnSetting.deleteMany();
   await prisma.lateFeeConfig.deleteMany();
 
@@ -60,9 +60,12 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash("admin123", 10);
   const vendorPasswordHash = await bcrypt.hash("vendor123", 10);
   const customerPasswordHash = await bcrypt.hash("customer123", 10);
+  const garimaPasswordHash = await bcrypt.hash("Garima@0401", 10);
 
-  const admin = await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@locare.com" },
+    update: { passwordHash: adminPasswordHash },
+    create: {
       firstName: "System",
       lastName: "Administrator",
       name: "Admin User",
@@ -72,8 +75,10 @@ async function main() {
     },
   });
 
-  const vendor = await prisma.user.create({
-    data: {
+  const vendor = await prisma.user.upsert({
+    where: { email: "vendor@locare.com" },
+    update: { passwordHash: vendorPasswordHash },
+    create: {
       firstName: "Mark",
       lastName: "Wood",
       name: "TechRentals Vendor",
@@ -86,13 +91,28 @@ async function main() {
     },
   });
 
-  const customer = await prisma.user.create({
-    data: {
+  const customer = await prisma.user.upsert({
+    where: { email: "customer@locare.com" },
+    update: { passwordHash: customerPasswordHash },
+    create: {
       firstName: "Sarah",
       lastName: "Chen",
       name: "Sarah Chen",
       email: "customer@locare.com",
       passwordHash: customerPasswordHash,
+      role: "customer",
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "garimaa.roy0401@gmail.com" },
+    update: { passwordHash: garimaPasswordHash },
+    create: {
+      firstName: "Garima",
+      lastName: "Roy",
+      name: "Garima Roy",
+      email: "garimaa.roy0401@gmail.com",
+      passwordHash: garimaPasswordHash,
       role: "customer",
     },
   });

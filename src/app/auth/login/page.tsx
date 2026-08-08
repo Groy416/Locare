@@ -86,11 +86,20 @@ function LoginContent() {
           <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 8, textTransform: "uppercase" }}>
             PRE-FILL DEMO ACCOUNT CREDENTIALS:
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${email === "garimaa.roy0401@gmail.com" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
+              onClick={() => handleRoleSelect("garimaa.roy0401@gmail.com", "Garima@0401")}
+            >
+              👩 Garima
+            </button>
+
             <button
               type="button"
               className={`btn btn-sm ${email === "customer@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700 }}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
               onClick={() => handleRoleSelect("customer@locare.com", "customer123")}
             >
               👤 Customer
@@ -99,7 +108,7 @@ function LoginContent() {
             <button
               type="button"
               className={`btn btn-sm ${email === "vendor@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700 }}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
               onClick={() => handleRoleSelect("vendor@locare.com", "vendor123")}
             >
               🏢 Vendor
@@ -108,7 +117,7 @@ function LoginContent() {
             <button
               type="button"
               className={`btn btn-sm ${email === "admin@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700 }}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
               onClick={() => handleRoleSelect("admin@locare.com", "admin123")}
             >
               🛡️ Admin
