@@ -126,18 +126,34 @@ export default function Header() {
 
         {/* Search Bar */}
         {activeRole === "customer" && (
-          <form onSubmit={handleSearchSubmit} className="header-search-form relative hidden lg:flex items-center flex-1 max-w-xs">
-            <input
-              type="text"
-              className="w-full bg-slate-900/80 text-xs text-slate-100 placeholder-slate-400 rounded-full pl-9 pr-8 py-2 border border-slate-800 focus:outline-none focus:border-lime-500/80 focus:ring-1 focus:ring-lime-500/80 transition-all"
-              placeholder="Search equipment, gear & tools..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
-            <button type="submit" className="absolute right-2 text-[10px] font-mono font-medium text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">
-              ⌘K
-            </button>
+          <form onSubmit={handleSearchSubmit} className="header-search-form relative flex items-center flex-1 max-w-md mx-2 sm:mx-4">
+            <div className="relative w-full flex items-center">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none transition-colors" />
+              <input
+                type="text"
+                className="w-full h-10 bg-slate-900/90 text-xs sm:text-sm text-slate-100 placeholder-slate-400 rounded-full pl-10 pr-14 border border-slate-800 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-500/30 transition-all shadow-inner"
+                placeholder="Search equipment, gear & tools..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3.5 text-xs text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="absolute right-2 text-[10px] font-mono font-semibold text-slate-300 bg-slate-800/90 hover:bg-slate-700 px-2 py-1 rounded-full border border-slate-700 transition-colors"
+                >
+                  Search
+                </button>
+              )}
+            </div>
           </form>
         )}
 
