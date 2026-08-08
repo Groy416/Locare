@@ -7,8 +7,12 @@ import { products as seedProducts, rentals as seedRentals } from "@/lib/data";
 export async function GET() {
   try {
     let dbProducts = await prisma.product.findMany();
-    let dbRentals = await prisma.rental.findMany({
-      include: { product: true },
+    let dbOrders = await prisma.rentalOrder.findMany({
+      include: {
+        orderLines: {
+          include: { product: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -32,31 +36,7 @@ export async function GET() {
       dbProducts = await prisma.product.findMany();
     }
 
-    // Auto-seed rentals if DB is empty
-    if (dbRentals.length === 0) {
-      for (const rent of seedRentals) {
-        await prisma.rental.create({
-          data: {
-            id: rent.id,
-            productId: rent.productId,
-            customerName: rent.customerName,
-            rentalStart: rent.rentalStart,
-            rentalEnd: rent.rentalEnd,
-            deliveryMethod: rent.deliveryMethod,
-            status: rent.status,
-            depositAmount: rent.depositAmount,
-            depositStatus: rent.depositStatus === "partially-deducted" ? "partially_deducted" : rent.depositStatus,
-            lateFeeCharged: rent.lateFeeCharged,
-          },
-        }).catch(() => {});
-      }
-      dbRentals = await prisma.rental.findMany({
-        include: { product: true },
-        orderBy: { createdAt: "desc" },
-      });
-    }
-
-    const lateConfig = (await prisma.lateFeeConfig.findFirst()) || {
+    const lateConfig = (await prisma.pickupReturnSetting.findFirst()) || {
       dailyRate: 15,
       gracePeriodDays: 1,
     };
@@ -74,20 +54,26 @@ export async function GET() {
       inStock: p.inStock,
     }));
 
-    // Format rentals to match Rental interface
-    const rentals: Rental[] = dbRentals.map((r) => {
+    // Format orders to match Rental interface
+    const rentals: Rental[] = dbOrders.map((r) => {
       let depStatus: Rental["depositStatus"] = "held";
       if (r.depositStatus === "refunded") depStatus = "refunded";
       if (r.depositStatus === "partially_deducted" || r.depositStatus === "partially-deducted") depStatus = "partially-deducted";
 
+      let statusMap: Rental["status"] = "booked";
+      if (r.status === "PICKED_UP") statusMap = "active";
+      else if (r.status === "RETURNED") statusMap = "returned";
+      else if (r.status === "OVERDUE") statusMap = "overdue";
+      else if (r.status === "CONFIRMED") statusMap = "active";
+
       return {
         id: r.id,
-        productId: r.productId,
+        productId: r.orderLines[0]?.productId || "prod-001",
         customerName: r.customerName,
         rentalStart: r.rentalStart,
         rentalEnd: r.rentalEnd,
         deliveryMethod: r.deliveryMethod as Rental["deliveryMethod"],
-        status: r.status as Rental["status"],
+        status: statusMap,
         depositAmount: r.depositAmount,
         depositStatus: depStatus,
         lateFeeCharged: r.lateFeeCharged,
@@ -96,11 +82,13 @@ export async function GET() {
 
     const metrics = aggregateDashboardMetrics(rentals, products);
 
-    // Filter active and overdue rentals for returns queue
-    const returnsQueue = dbRentals
-      .filter((r) => r.status === "active" || r.status === "overdue")
+    const returnsQueue = dbOrders
+      .filter((r) => r.status === "CONFIRMED" || r.status === "PICKED_UP" || r.status === "OVERDUE")
       .map((r) => {
-        const estimatedLateFee = calculateLateFee(r.rentalEnd, lateConfig);
+        const estimatedLateFee = calculateLateFee(r.rentalEnd, {
+          dailyRate: lateConfig.dailyRate,
+          gracePeriodDays: lateConfig.gracePeriodDays,
+        });
         return {
           ...r,
           estimatedLateFee,
@@ -121,7 +109,7 @@ export async function GET() {
       metrics,
       rentals: seedRentals,
       products: seedProducts,
-      returnsQueue: seedRentals.filter((r) => r.status === "active" || r.status === "overdue"),
+      returnsQueue: seedRentals.filter((r: Rental) => r.status === "active" || r.status === "overdue"),
       lateConfig: { dailyRate: 15, gracePeriodDays: 1 },
     });
   }

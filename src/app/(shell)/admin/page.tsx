@@ -1,501 +1,265 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Rental, Product } from "@/lib/data";
-import type { DashboardMetrics } from "@/lib/rental-logic";
+import Link from "next/link";
 
-export default function AdminDashboardPage() {
-  const [data, setData] = useState<{
-    metrics: DashboardMetrics;
-    rentals: Rental[];
-    products: Product[];
-    returnsQueue: Array<Rental & { estimatedLateFee: number }>;
-  } | null>(null);
+interface OrderLine {
+  id: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  product?: { name: string };
+}
+
+interface RentalOrder {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  rentalStart: string;
+  rentalEnd: string;
+  deliveryMethod: string;
+  status: string; // "QUOTATION" | "QUOTATION_SENT" | "CONFIRMED" | "PICKED_UP" | "RETURNED" | "CANCELLED" | "OVERDUE"
+  invoiceStatus: string; // "NOTHING_TO_INVOICE" | "WAITING_TO_INVOICE" | "DRAFT_INVOICE" | "INVOICED"
+  totalAmount: number;
+  depositAmount: number;
+  lateFeeCharged: number;
+  orderLines: OrderLine[];
+}
+
+export default function AdminOrderManagementPage() {
+  const [orders, setOrders] = useState<RentalOrder[]>([]);
+  const [metrics, setMetrics] = useState({ totalSales: 0, totalLateFees: 0, totalDeposits: 0 });
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [filter, setFilter] = useState<"all" | "today" | "pickup" | "return" | "late">("all");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // New UI states for Managing Inventory
-  const [activeTab, setActiveTab] = useState<"rentals" | "inventory">("rentals");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    description: "",
-    category: "Cleaning Equipment",
-    rentalUnit: "day",
-    price: "",
-    securityDeposit: "",
-    inStock: "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const fetchOrders = () => {
+    setLoading(true);
+    const query = new URLSearchParams();
+    if (filter !== "all") query.set("filter", filter);
+    if (search) query.set("search", search);
 
-  const refreshDashboard = () => {
-    fetch("/api/dashboard")
+    fetch(`/api/orders?${query.toString()}`)
       .then((res) => res.json())
-      .then((resData) => {
-        if (resData && resData.metrics) {
-          setData({
-            metrics: resData.metrics,
-            rentals: resData.rentals || [],
-            products: resData.products || [],
-            returnsQueue: resData.returnsQueue || [],
-          });
-        }
+      .then((data) => {
+        if (data.orders) setOrders(data.orders);
+        if (data.metrics) setMetrics(data.metrics);
       })
-      .catch((err) => console.error("Error refreshing dashboard data:", err));
+      .catch((err) => console.error("Error fetching orders:", err))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((res) => res.json())
-      .then((resData) => {
-        if (resData && resData.metrics) {
-          setData({
-            metrics: resData.metrics,
-            rentals: resData.rentals || [],
-            products: resData.products || [],
-            returnsQueue: resData.returnsQueue || [],
-          });
-        }
-      })
-      .catch((err) => console.error("Error loading dashboard data:", err))
-      .finally(() => setLoading(false));
-  }, []);
+    fetchOrders();
+  }, [filter, search]);
 
-  if (loading || !data) {
-    return (
-      <div className="page-shell animate-fade-in">
-        <h1 className="page-title">Admin Dashboard</h1>
-        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)" }}>
-          Loading real-time operational dashboard from database...
-        </div>
-      </div>
-    );
-  }
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "QUOTATION":
+        return <span className="erp-pill erp-pill-quotation">Quotation</span>;
+      case "QUOTATION_SENT":
+        return <span className="erp-pill erp-pill-quotation-sent">Quotation Sent</span>;
+      case "CONFIRMED":
+        return <span className="erp-pill erp-pill-confirmed">Sale Order</span>;
+      case "PICKED_UP":
+        return <span className="erp-pill erp-pill-picked">Picked Up</span>;
+      case "RETURNED":
+        return <span className="erp-pill erp-pill-returned">Completed</span>;
+      case "OVERDUE":
+        return <span className="erp-pill erp-pill-late">Late Return</span>;
+      case "CANCELLED":
+        return <span className="erp-pill erp-pill-cancelled">Cancelled</span>;
+      default:
+        return <span className="badge">{status}</span>;
+    }
+  };
 
-  const { metrics, rentals, returnsQueue, products } = data;
-  const activeCount = rentals.filter((r) => r.status === "active").length;
-  const overdueCount = rentals.filter((r) => r.status === "overdue").length;
-  const bookedCount = rentals.filter((r) => r.status === "booked").length;
-  const returnedCount = rentals.filter((r) => r.status === "returned").length;
-
-  const pendingLateFees = returnsQueue.reduce(
-    (sum, r) => sum + (r.estimatedLateFee || 0),
-    0
-  );
-
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-    try {
-      const response = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...newProduct,
-          price: parseFloat(newProduct.price),
-          securityDeposit: parseFloat(newProduct.securityDeposit),
-          inStock: parseInt(newProduct.inStock, 10),
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to add product");
-      }
-
-      await response.json();
-      
-      // Refresh dashboard data so the newly added product immediately shows up
-      refreshDashboard();
-
-      // Reset product state and close modal
-      setNewProduct({
-        name: "",
-        description: "",
-        category: "Cleaning Equipment",
-        rentalUnit: "day",
-        price: "",
-        securityDeposit: "",
-        inStock: "",
-      });
-      setShowAddModal(false);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to save product");
-      }
-    } finally {
-      setSaving(false);
+  const getInvoiceBadge = (invStatus: string) => {
+    switch (invStatus) {
+      case "INVOICED":
+        return <span className="erp-pill erp-pill-invoiced">Invoiced</span>;
+      case "WAITING_TO_INVOICE":
+      case "DRAFT_INVOICE":
+        return <span className="erp-pill erp-pill-waiting">To Invoice</span>;
+      default:
+        return <span className="erp-pill erp-pill-nothing">Nothing to Invoice</span>;
     }
   };
 
   return (
     <div className="page-shell animate-fade-in">
-      <h1 className="page-title">Admin Dashboard</h1>
-      <p className="page-subtitle">
-        Real-time rental metrics and operational overview.
-      </p>
+      {/* ─── Top Control Bar ───────────────────────────────────────────── */}
+      <div className="erp-top-bar">
+        <div className="erp-title-group">
+          <h1 className="page-title" style={{ margin: 0 }}>
+            Rental Order
+          </h1>
+          <Link href="/admin/orders/new" className="btn btn-primary btn-sm">
+            + New
+          </Link>
+        </div>
 
-      {/* ─── Tab Navigation Selector ────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "28px", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
-        <button
-          onClick={() => setActiveTab("rentals")}
-          className={`btn ${activeTab === "rentals" ? "btn-primary" : "btn-ghost"}`}
-          style={{ padding: "8px 16px" }}
-        >
-          📈 Rentals Overview
-        </button>
-        <button
-          onClick={() => setActiveTab("inventory")}
-          className={`btn ${activeTab === "inventory" ? "btn-primary" : "btn-ghost"}`}
-          style={{ padding: "8px 16px" }}
-        >
-          📦 Equipment Inventory
-        </button>
+        {/* Search Bar */}
+        <div className="erp-search-wrapper">
+          <input
+            type="text"
+            className="form-input erp-search-input"
+            placeholder="Search orders, customers..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button className="btn btn-ghost btn-sm" aria-label="Search">
+            🔍
+          </button>
+        </div>
+
+        {/* View Switcher Toggle */}
+        <div className="erp-view-switcher" role="radiogroup" aria-label="View Switcher">
+          <span className="switcher-label">View Switcher:</span>
+          <button
+            className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setViewMode("list")}
+          >
+            ☰ List
+          </button>
+          <button
+            className={`btn btn-sm ${viewMode === "kanban" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setViewMode("kanban")}
+          >
+            ▦ Kanban
+          </button>
+        </div>
       </div>
 
-      {activeTab === "rentals" && (
-        <div className="animate-fade-in">
-          {/* ─── Stat Cards ──────────────────────────────────────────────────── */}
-          <div className="stat-grid stagger-children">
-            <div className="stat-card">
-              <span className="stat-label">Active Rentals</span>
-              <span className="stat-value primary">{activeCount}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Overdue</span>
-              <span className="stat-value danger">{overdueCount}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Upcoming Bookings</span>
-              <span className="stat-value">{bookedCount}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Returned</span>
-              <span className="stat-value success">{returnedCount}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Est. Revenue</span>
-              <span className="stat-value primary">
-                ${metrics.totalRevenue.toLocaleString()}
-              </span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Deposits Held</span>
-              <span className="stat-value warning">
-                ${metrics.totalHeldDeposits.toLocaleString()}
-              </span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Pending Late Fees</span>
-              <span className="stat-value danger">
-                ${pendingLateFees.toLocaleString()}
-              </span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Utilization Rate</span>
-              <span className="stat-value primary">{metrics.utilizationRate}%</span>
-            </div>
-          </div>
-
-          {/* ─── Recent Rentals Table ────────────────────────────────────────── */}
-          <h2
-            style={{
-              fontSize: "1.15rem",
-              fontWeight: 700,
-              color: "var(--text-primary)",
-              marginBottom: "16px",
-            }}
+      {/* ─── Filters & Metrics Summary Header ──────────────────────────── */}
+      <div className="erp-toolbar">
+        {/* Filter Pills */}
+        <div className="erp-filters">
+          <button
+            className={`filter-chip ${filter === "all" ? "filter-chip-active" : ""}`}
+            onClick={() => setFilter("all")}
           >
-            All Rentals
-          </h2>
-
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Product ID</th>
-                  <th>Customer</th>
-                  <th>Period</th>
-                  <th>Status</th>
-                  <th>Deposit</th>
-                  <th>Late Fee</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rentals.map((rental) => {
-                  const lateFee = rental.lateFeeCharged || 0;
-
-                  return (
-                    <tr key={rental.id}>
-                      <td
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.8rem",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        {rental.id}
-                      </td>
-                      <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-                        {rental.productId}
-                      </td>
-                      <td>{rental.customerName}</td>
-                      <td>
-                        <div style={{ fontSize: "0.8rem" }}>
-                          {rental.rentalStart} → {rental.rentalEnd}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge badge-${rental.status}`}>
-                          {rental.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div>
-                          <span style={{ fontWeight: 600 }}>
-                            ${rental.depositAmount}
-                          </span>
-                          <div
-                            style={{
-                              fontSize: "0.7rem",
-                              color: "var(--text-muted)",
-                            }}
-                          >
-                            {rental.depositStatus}
-                          </div>
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          color: lateFee > 0 ? "var(--danger)" : "var(--text-muted)",
-                          fontWeight: lateFee > 0 ? 700 : 400,
-                        }}
-                      >
-                        {lateFee > 0 ? `$${lateFee}` : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            All
+          </button>
+          <button
+            className={`filter-chip ${filter === "today" ? "filter-chip-active" : ""}`}
+            onClick={() => setFilter("today")}
+          >
+            Today
+          </button>
+          <button
+            className={`filter-chip ${filter === "pickup" ? "filter-chip-active" : ""}`}
+            onClick={() => setFilter("pickup")}
+          >
+            Pickup
+          </button>
+          <button
+            className={`filter-chip ${filter === "return" ? "filter-chip-active" : ""}`}
+            onClick={() => setFilter("return")}
+          >
+            Return
+          </button>
+          <button
+            className={`filter-chip filter-chip-late ${filter === "late" ? "filter-chip-active" : ""}`}
+            onClick={() => setFilter("late")}
+          >
+            Late
+          </button>
         </div>
-      )}
 
-      {activeTab === "inventory" && (
-        <div className="animate-fade-in">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h2 style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-              Equipment Inventory ({products.length})
-            </h2>
-            <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm">
-              ➕ Add Product
-            </button>
-          </div>
-
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Product ID</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Rental Rate</th>
-                  <th>Security Deposit</th>
-                  <th>Stock Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                      {product.id}
-                    </td>
-                    <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-                      {product.name}
-                    </td>
-                    <td>
-                      <span className="badge badge-booked">
-                        {product.category}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 600 }}>${product.price}</span>
-                      <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}> / {product.rentalUnit}</span>
-                    </td>
-                    <td style={{ color: "var(--warning)", fontWeight: 600 }}>
-                      ${product.securityDeposit}
-                    </td>
-                    <td>
-                      <span className={`product-stock ${product.inStock > 0 ? "in-stock" : "out-of-stock"}`}>
-                        {product.inStock > 0 ? `${product.inStock} in stock` : "Out of stock"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* Summary Metrics Bar (Sales $, Late Fees $, Deposits $) */}
+        <div className="erp-metrics-bar">
+          <span className="metric-chip">
+            Sales: <strong>${metrics.totalSales.toLocaleString()}</strong>
+          </span>
+          <span className="metric-chip">
+            Late Fees: <strong>${metrics.totalLateFees.toLocaleString()}</strong>
+          </span>
+          <span className="metric-chip">
+            Deposits: <strong>${metrics.totalDeposits.toLocaleString()}</strong>
+          </span>
         </div>
-      )}
+      </div>
 
-      {/* ─── Add Product Modal Overlay ────────────────────────────────────── */}
-      {showAddModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-          backdropFilter: "blur(4px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 100,
-          padding: "20px",
-        }}>
-          <div className="card animate-scale-up" style={{
-            maxWidth: "500px",
-            width: "100%",
-            maxHeight: "90vh",
-            overflowY: "auto",
-            position: "relative",
-            backgroundColor: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            boxShadow: "var(--shadow-lg)",
-            padding: "24px",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>Add New Equipment</h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.25rem" }}
+      {loading ? (
+        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)" }}>
+          Loading rental orders...
+        </div>
+      ) : viewMode === "list" ? (
+        /* ─── List View by Default ───────────────────────────────────── */
+        <div className="table-container">
+          <table className="table erp-table">
+            <thead>
+              <tr>
+                <th>Order Reference</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Pickup Date</th>
+                <th>Return Date</th>
+                <th>Total</th>
+                <th>Invoice Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id}>
+                  <td style={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>
+                    <Link href={`/admin/orders/${order.id}`} className="order-link">
+                      {order.orderNumber}
+                    </Link>
+                  </td>
+                  <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>
+                    {order.customerName}
+                  </td>
+                  <td>{getStatusBadge(order.status)}</td>
+                  <td style={{ fontSize: "0.85rem" }}>{order.rentalStart}</td>
+                  <td style={{ fontSize: "0.85rem" }}>{order.rentalEnd}</td>
+                  <td style={{ fontWeight: 700 }}>${order.totalAmount.toLocaleString()}</td>
+                  <td>{getInvoiceBadge(order.invoiceStatus)}</td>
+                  <td>
+                    <Link href={`/admin/orders/${order.id}`} className="btn btn-ghost btn-sm">
+                      View Order ➔
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* ─── Kanban View ────────────────────────────────────────────── */
+        <div className="kanban-grid stagger-children">
+          {orders.map((order) => {
+            const firstProduct = order.orderLines[0]?.product?.name || "Equipment Rental";
+            return (
+              <Link
+                key={order.id}
+                href={`/admin/orders/${order.id}`}
+                className="kanban-card-link"
               >
-                ✕
-              </button>
-            </div>
+                <div className="kanban-card">
+                  <div className="kanban-card-header">
+                    <div>
+                      <h4 className="kanban-customer">{order.customerName}</h4>
+                      <span className="kanban-order-no">{order.orderNumber}</span>
+                    </div>
+                    <div className="kanban-amount">${order.totalAmount}</div>
+                  </div>
 
-            <form onSubmit={handleAddProduct} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div className="form-group">
-                <label className="form-label">Product Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  required
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  placeholder="e.g. Pressure Washer Pro 3000"
-                />
-              </div>
+                  <div className="kanban-product-name">{firstProduct}</div>
 
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select
-                  className="form-input"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                >
-                  <option value="Cleaning Equipment">Cleaning Equipment</option>
-                  <option value="Heavy Equipment">Heavy Equipment</option>
-                  <option value="Access Equipment">Access Equipment</option>
-                  <option value="Construction">Construction</option>
-                  <option value="AV Equipment">AV Equipment</option>
-                  <option value="Events">Events</option>
-                  <option value="Power Equipment">Power Equipment</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <textarea
-                  className="form-input"
-                  required
-                  rows={3}
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  placeholder="Describe the equipment, its specifications, and ideal usage..."
-                  style={{ resize: "vertical" }}
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div className="form-group">
-                  <label className="form-label">Rental Unit</label>
-                  <select
-                    className="form-input"
-                    value={newProduct.rentalUnit}
-                    onChange={(e) => setNewProduct({ ...newProduct, rentalUnit: e.target.value })}
-                  >
-                    <option value="day">per Day</option>
-                    <option value="week">per Week</option>
-                    <option value="month">per Month</option>
-                  </select>
+                  <div className="kanban-card-footer">
+                    <span className="kanban-duration">
+                      📅 {order.rentalStart} → {order.rentalEnd}
+                    </span>
+                    <div>{getStatusBadge(order.status)}</div>
+                  </div>
                 </div>
-
-                <div className="form-group">
-                  <label className="form-label">Quantity In Stock</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    required
-                    min="1"
-                    value={newProduct.inStock}
-                    onChange={(e) => setNewProduct({ ...newProduct, inStock: e.target.value })}
-                    placeholder="e.g. 5"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div className="form-group">
-                  <label className="form-label">Price ($)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                    placeholder="e.g. 75.00"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Security Deposit ($)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={newProduct.securityDeposit}
-                    onChange={(e) => setNewProduct({ ...newProduct, securityDeposit: e.target.value })}
-                    placeholder="e.g. 200.00"
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div style={{ color: "var(--danger)", fontSize: "0.85rem", fontWeight: 600 }}>
-                  ⚠️ {error}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-ghost">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? "Adding..." : "Add Equipment"}
-                </button>
-              </div>
-            </form>
-          </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
