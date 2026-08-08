@@ -36,3 +36,48 @@ export async function GET() {
     return NextResponse.json(seedProducts);
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      name,
+      description,
+      category,
+      rentalUnit,
+      price,
+      securityDeposit,
+      inStock,
+      image,
+    } = body;
+
+    if (!name || !description || !category || !rentalUnit || price === undefined || securityDeposit === undefined || inStock === undefined) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const newProduct = await prisma.product.create({
+      data: {
+        name,
+        description,
+        category,
+        image: image || "/images/placeholder.jpg",
+        rentalUnit,
+        price: parseFloat(price),
+        securityDeposit: parseFloat(securityDeposit),
+        inStock: parseInt(inStock, 10),
+      },
+    });
+
+    return NextResponse.json(newProduct, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/products error:", error);
+    return NextResponse.json(
+      { error: "Failed to create product" },
+      { status: 500 }
+    );
+  }
+}
+

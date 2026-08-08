@@ -14,8 +14,10 @@ export default function AdminReturnsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [lateConfig, setLateConfig] = useState({ dailyRate: 15, gracePeriodDays: 1 });
 
-  const loadData = () => {
-    setLoading(true);
+  const loadData = (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     fetch("/api/dashboard")
       .then((res) => res.json())
       .then((data) => {
@@ -31,6 +33,7 @@ export default function AdminReturnsPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, []);
 
@@ -44,7 +47,7 @@ export default function AdminReturnsPage() {
       });
 
       if (res.ok) {
-        loadData();
+        loadData(true);
       } else {
         alert("Failed to process return settlement.");
       }
