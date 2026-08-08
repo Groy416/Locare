@@ -263,9 +263,9 @@ export default function ProductDetailPage() {
                 <span className="detail-spec-label">Stock Status</span>
                 <span
                   className="detail-spec-value"
-                  style={{ color: !isOutOfStock ? "var(--success)" : "var(--danger)" }}
+                  style={{ color: !isOutOfStock ? "var(--success)" : "var(--danger)", fontWeight: isOutOfStock ? 800 : 600 }}
                 >
-                  {!isOutOfStock ? `${activeStock} Available` : "Out of Stock"}
+                  {!isOutOfStock ? `${activeStock} Available` : "SOLD OUT"}
                 </span>
               </div>
             </div>
@@ -428,9 +428,10 @@ export default function ProductDetailPage() {
                 className={`btn btn-primary btn-block btn-lg ${addedToCart ? "btn-success-flash" : ""}`}
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
+                style={{ opacity: isOutOfStock ? 0.6 : 1, cursor: isOutOfStock ? "not-allowed" : "pointer" }}
               >
                 {isOutOfStock
-                  ? "Out of Stock"
+                  ? "🔴 SOLD OUT"
                   : addedToCart
                   ? "✓ Added to Cart!"
                   : "Add to Cart"}
@@ -440,8 +441,9 @@ export default function ProductDetailPage() {
                 className="btn btn-ghost btn-block"
                 onClick={handleExpressCheckout}
                 disabled={isOutOfStock}
+                style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? "not-allowed" : "pointer" }}
               >
-                ⚡ Express Checkout
+                {isOutOfStock ? "SOLD OUT" : "⚡ Express Checkout"}
               </button>
             </div>
           </div>

@@ -438,8 +438,8 @@ function CatalogContent() {
                         <ProductIcon category={product.category} size="sm" />
 
                         {isOutOfStock && (
-                          <div className="out-of-stock-tech-badge">
-                            🚫 UNAVAILABLE
+                          <div className="out-of-stock-tech-badge" style={{ background: "#DC2626", color: "#FFFFFF", fontWeight: 800 }}>
+                            🔴 SOLD OUT
                           </div>
                         )}
 
@@ -499,8 +499,9 @@ function CatalogContent() {
                             className={`product-stock ${
                               !isOutOfStock ? "in-stock" : "out-of-stock"
                             }`}
+                            style={{ fontWeight: isOutOfStock ? 800 : 600 }}
                           >
-                            {!isOutOfStock ? `${product.inStock} in stock` : "Unavailable"}
+                            {!isOutOfStock ? `${product.inStock} in stock` : "SOLD OUT"}
                           </span>
                         </div>
                       </div>

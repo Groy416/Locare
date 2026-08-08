@@ -139,8 +139,8 @@ export default function AdminProductsPage() {
                     <span className="product-deposit-badge">
                       🔒 ${prod.securityDeposit} deposit
                     </span>
-                    <span className="product-stock in-stock">
-                      {prod.inStock} in stock
+                    <span className={`product-stock ${prod.inStock > 0 ? "in-stock" : "out-of-stock"}`}>
+                      {prod.inStock > 0 ? `${prod.inStock} in stock` : "🔴 SOLD OUT"}
                     </span>
                   </div>
                 </div>
