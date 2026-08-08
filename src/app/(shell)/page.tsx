@@ -72,11 +72,11 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-landing-ctas animate-fade-in">
-            <Link href="/customer" className="btn btn-primary btn-lg hero-btn-glow">
-              Explore Equipment Catalog →
+            <Link href="/auth/login?redirect=/customer" className="btn btn-primary btn-lg hero-btn-glow">
+              Get Started / Log In →
             </Link>
-            <Link href="/admin" className="btn btn-ghost btn-lg hero-btn-glass">
-              🛡️ Launch Admin ERP Demo
+            <Link href="/auth/login?redirect=/admin" className="btn btn-ghost btn-lg hero-btn-glass">
+              🛡️ Vendor & Admin Sign In
             </Link>
           </div>
 
@@ -212,8 +212,8 @@ export default function LandingPage() {
               <span className="section-eyebrow">FEATURED CATALOG</span>
               <h2 className="section-title">Popular Equipment Ready for Instant Booking</h2>
             </div>
-            <Link href="/customer" className="btn btn-ghost btn-sm">
-              View Full Catalog →
+            <Link href="/auth/login?redirect=/customer" className="btn btn-ghost btn-sm">
+              Sign In to View Full Catalog →
             </Link>
           </div>
 
@@ -221,7 +221,7 @@ export default function LandingPage() {
             {featuredItems.map((item) => (
               <Link
                 key={item.id}
-                href={`/customer/products/${item.id}`}
+                href="/auth/login?redirect=/customer"
                 className="product-card-link"
               >
                 <article className="card product-card technical-card">
@@ -298,14 +298,14 @@ export default function LandingPage() {
             <div className="landing-cta-content">
               <h2>Ready to Rent Equipment or Manage Your Fleet?</h2>
               <p>
-                Start browsing our equipment catalog or access the admin ERP dashboard today.
+                Log in to your Locare account to browse equipment or access the admin ERP dashboard.
               </p>
               <div className="landing-cta-buttons">
-                <Link href="/customer" className="btn btn-primary btn-lg hero-btn-glow">
-                  Start Renting Now →
+                <Link href="/auth/login?redirect=/customer" className="btn btn-primary btn-lg hero-btn-glow">
+                  Log In to Customer Home →
                 </Link>
-                <Link href="/admin" className="btn btn-ghost btn-lg">
-                  Open ERP Dashboard
+                <Link href="/auth/login?redirect=/admin" className="btn btn-ghost btn-lg">
+                  Vendor & Admin Log In
                 </Link>
               </div>
             </div>
@@ -329,18 +329,16 @@ export default function LandingPage() {
 
             <div className="footer-col">
               <h4>Platform</h4>
-              <Link href="/customer">Customer Catalog</Link>
-              <Link href="/customer/wishlist">Wishlist</Link>
-              <Link href="/customer/cart">Shopping Cart</Link>
-              <Link href="/customer/checkout">Checkout</Link>
+              <Link href="/auth/login?redirect=/customer">Customer Catalog</Link>
+              <Link href="/auth/login?redirect=/customer/wishlist">Wishlist</Link>
+              <Link href="/auth/login?redirect=/customer/cart">Shopping Cart</Link>
             </div>
 
             <div className="footer-col">
               <h4>ERP Solution</h4>
-              <Link href="/admin">Orders Dashboard</Link>
-              <Link href="/admin/rentals">Rentals</Link>
-              <Link href="/admin/returns">Returns Processing</Link>
-              <Link href="/admin/invoices">Invoicing</Link>
+              <Link href="/auth/login?redirect=/admin">Orders Dashboard</Link>
+              <Link href="/auth/login?redirect=/admin/rentals">Rentals</Link>
+              <Link href="/auth/login?redirect=/admin/returns">Returns Processing</Link>
             </div>
 
             <div className="footer-col">

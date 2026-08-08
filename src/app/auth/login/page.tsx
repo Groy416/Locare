@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get("redirect") || "/customer";
+
+  const [email, setEmail] = useState("customer@locare.com");
+  const [password, setPassword] = useState("customer123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -28,22 +31,59 @@ export default function LoginPage() {
     if (res?.error) {
       setError("Invalid User ID or Password.");
     } else {
-      router.push("/admin");
+      router.push(redirectTarget);
     }
+  };
+
+  const handleQuickSignIn = async (userEmail: string, userPass: string, targetPath: string) => {
+    setLoading(true);
+    await signIn("credentials", {
+      email: userEmail,
+      password: userPass,
+      redirect: false,
+    });
+    setLoading(false);
+    router.push(targetPath);
   };
 
   return (
     <div className="auth-shell">
-      <div className="auth-card animate-fade-in">
+      <div className="auth-card animate-fade-in" style={{ maxWidth: 460 }}>
         <div className="auth-header">
           <div className="auth-logo">Locare</div>
-          <h2 className="auth-title">Log In</h2>
-          <p className="auth-subtitle">Access your Rental ERP & Catalog</p>
+          <h2 className="auth-title">Log In to Your Account</h2>
+          <p className="auth-subtitle">Step 2: Sign in to access Locare Home & Catalog</p>
         </div>
 
         {error && <div className="auth-error-badge">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        {/* Quick Demo Sign-In Buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+          <button
+            className="btn btn-primary btn-block btn-lg"
+            style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)", fontWeight: 700 }}
+            onClick={() => handleQuickSignIn("customer@locare.com", "customer123", redirectTarget)}
+            disabled={loading}
+          >
+            👤 Sign In as Customer → Main Home
+          </button>
+
+          <button
+            className="btn btn-ghost btn-block"
+            onClick={() => handleQuickSignIn("admin@locare.com", "admin123", "/admin")}
+            disabled={loading}
+          >
+            🛡️ Sign In as Vendor / Admin ERP
+          </button>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
+          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>OR CUSTOM CREDENTIALS</span>
+          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+        </div>
+
+        <form onSubmit={handleCustomSubmit} className="auth-form">
           <div className="form-group">
             <label className="form-label" htmlFor="login-email">
               Login ID (Email)
@@ -52,7 +92,7 @@ export default function LoginPage() {
               id="login-email"
               type="email"
               className="form-input"
-              placeholder="admin@locare.com"
+              placeholder="customer@locare.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -82,10 +122,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="btn btn-primary btn-block btn-lg"
+            className="btn btn-primary btn-block"
             disabled={loading}
           >
-            {loading ? "Signing In..." : "Log In"}
+            {loading ? "Signing In..." : "Log In & Continue to Home"}
           </button>
 
           <div className="auth-footer-links">
@@ -102,5 +142,13 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-shell"><p>Loading Login...</p></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
