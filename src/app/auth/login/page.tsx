@@ -17,7 +17,7 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const performLogin = async (loginEmail: string, loginPass: string, fallbackTarget: string) => {
+  const performLogin = async (loginEmail: string, loginPass: string, overrideTarget?: string) => {
     setError("");
     setLoading(true);
 
@@ -31,14 +31,22 @@ function LoginContent() {
         redirect: false,
       });
 
+      if (res?.error) {
+        setLoading(false);
+        setError("Invalid User ID or Password.");
+        return;
+      }
+
+      // Fetch active session to check role
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+
       setLoading(false);
 
-      if (res?.error) {
-        setError("Invalid User ID or Password.");
-      } else {
-        const target = redirectTarget || fallbackTarget;
-        window.location.href = target;
-      }
+      const userRole = session?.user?.role || (cleanEmail === "admin@locare.com" ? "admin" : "customer");
+      const target = redirectTarget || overrideTarget || (userRole === "admin" ? "/admin" : "/customer");
+
+      window.location.href = target;
     } catch {
       setLoading(false);
       setError("An unexpected error occurred during login.");
@@ -47,9 +55,7 @@ function LoginContent() {
 
   const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase();
-    const fallbackPath = cleanEmail.includes("customer") ? "/customer" : "/admin";
-    await performLogin(email, password, fallbackPath);
+    await performLogin(email, password);
   };
 
   const handleRoleSelect = (roleEmail: string, rolePass: string) => {
