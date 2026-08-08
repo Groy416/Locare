@@ -141,11 +141,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid product ID format" }, { status: 400 });
     }
 
+    const newStock = body.inStock !== undefined ? Math.max(0, parseInt(String(body.inStock), 10)) : undefined;
+    let autoStatus = body.status ? String(body.status).toUpperCase() : undefined;
+    if (newStock !== undefined && !body.status) {
+      autoStatus = newStock > 0 ? "AVAILABLE" : "OUT_OF_STOCK";
+    }
+
     const updatedProduct = await prisma.product.update({
       where: { id: numId },
       data: {
-        ...(body.inStock !== undefined ? { inStock: Math.max(0, parseInt(String(body.inStock), 10)) } : {}),
-        ...(body.status ? { status: String(body.status).toUpperCase() } : {}),
+        ...(newStock !== undefined ? { inStock: newStock } : {}),
+        ...(autoStatus ? { status: autoStatus } : {}),
         ...(body.name ? { name: body.name } : {}),
         ...(body.price !== undefined ? { price: parseFloat(body.price) } : {}),
         ...(body.securityDeposit !== undefined ? { securityDeposit: parseFloat(body.securityDeposit) } : {}),

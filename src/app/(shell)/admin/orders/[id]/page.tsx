@@ -34,6 +34,8 @@ interface RentalOrder {
   taxAmount: number;
   totalAmount: number;
   depositAmount: number;
+  lateFeeCharged?: number;
+  depositStatus?: string;
   orderLines: OrderLine[];
   invoices: Invoice[];
 }
@@ -303,12 +305,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <div className="total-row">
             <span>Refundable Deposit Held:</span>
             <strong style={{ color: "var(--warning)" }}>
-              ${order.depositAmount.toLocaleString()}
+              ₹{order.depositAmount.toLocaleString()}
             </strong>
           </div>
+          {order.lateFeeCharged !== undefined && order.lateFeeCharged > 0 && (
+            <div className="total-row" style={{ color: "#ef4444" }}>
+              <span>⚠️ Calculated Late Fine:</span>
+              <strong>+₹{order.lateFeeCharged.toLocaleString()}</strong>
+            </div>
+          )}
+          {order.lateFeeCharged !== undefined && order.lateFeeCharged > 0 && (
+            <div className="total-row">
+              <span>Deposit Settlement ({order.depositStatus || "held"}):</span>
+              <strong style={{ color: "#10b981" }}>
+                ₹{Math.max(0, order.depositAmount - order.lateFeeCharged).toLocaleString()} Refunded
+              </strong>
+            </div>
+          )}
           <div className="total-row total-row-grand">
             <span>Total Amount:</span>
-            <strong>${order.totalAmount.toLocaleString()}</strong>
+            <strong>₹{order.totalAmount.toLocaleString()}</strong>
           </div>
         </div>
 
