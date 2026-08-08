@@ -44,8 +44,9 @@ export default function CustomerSignUpPage() {
       if (!res.ok) {
         setError(data.error || "Registration failed.");
       } else {
+        const registeredEmail = formData.email.toLowerCase().trim();
         setSuccess("Account created successfully! Redirecting to login...");
-        setTimeout(() => router.push("/auth/login"), 1500);
+        setTimeout(() => router.push(`/auth/login?email=${encodeURIComponent(registeredEmail)}&registered=true`), 1200);
       }
     } catch {
       setLoading(false);
@@ -62,7 +63,25 @@ export default function CustomerSignUpPage() {
           <p className="auth-subtitle">Create a new customer account</p>
         </div>
 
-        {error && <div className="auth-error-badge">{error}</div>}
+        {error && (
+          <div className="auth-error-badge" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span>{error}</span>
+            {error.includes("already exists") && (
+              <Link
+                href={`/auth/login?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`}
+                style={{
+                  color: "#ffffff",
+                  textDecoration: "underline",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  marginTop: 4,
+                }}
+              >
+                Click here to Log In with this email ➔
+              </Link>
+            )}
+          </div>
+        )}
         {success && <div className="auth-success-badge">{success}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">

@@ -8,14 +8,16 @@ import { useSearchParams } from "next/navigation";
 function LoginContent() {
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get("redirect");
+  const emailParam = searchParams.get("email");
+  const registeredParam = searchParams.get("registered");
 
-  const [email, setEmail] = useState("customer@locare.com");
-  const [password, setPassword] = useState("customer123");
+  const [email, setEmail] = useState(emailParam || "");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const performLogin = async (loginEmail: string, loginPass: string, fallbackTarget: string) => {
+  const performLogin = async (loginEmail: string, loginPass: string, overrideTarget?: string) => {
     setError("");
     setLoading(true);
 
@@ -29,14 +31,22 @@ function LoginContent() {
         redirect: false,
       });
 
+      if (res?.error) {
+        setLoading(false);
+        setError("Invalid User ID or Password.");
+        return;
+      }
+
+      // Fetch active session to check role
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+
       setLoading(false);
 
-      if (res?.error) {
-        setError("Invalid User ID or Password.");
-      } else {
-        const target = redirectTarget || fallbackTarget;
-        window.location.href = target;
-      }
+      const userRole = session?.user?.role || (cleanEmail === "admin@locare.com" ? "admin" : "customer");
+      const target = redirectTarget || overrideTarget || (userRole === "admin" ? "/admin" : "/customer");
+
+      window.location.href = target;
     } catch {
       setLoading(false);
       setError("An unexpected error occurred during login.");
@@ -45,9 +55,7 @@ function LoginContent() {
 
   const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase();
-    const fallbackPath = cleanEmail.includes("customer") ? "/customer" : "/admin";
-    await performLogin(email, password, fallbackPath);
+    await performLogin(email, password);
   };
 
   const handleRoleSelect = (roleEmail: string, rolePass: string) => {
@@ -65,6 +73,12 @@ function LoginContent() {
           <p className="auth-subtitle">Sign in to access Locare ERP & Customer Catalog</p>
         </div>
 
+        {registeredParam && (
+          <div className="auth-success-badge" style={{ marginBottom: 16 }}>
+            ✓ Account created successfully! Enter your password to log in.
+          </div>
+        )}
+
         {error && <div className="auth-error-badge">{error}</div>}
 
         {/* Role Quick Selection Preset Buttons */}
@@ -72,11 +86,20 @@ function LoginContent() {
           <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 8, textTransform: "uppercase" }}>
             PRE-FILL DEMO ACCOUNT CREDENTIALS:
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${email === "garimaa.roy0401@gmail.com" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
+              onClick={() => handleRoleSelect("garimaa.roy0401@gmail.com", "Garima@0401")}
+            >
+              👩 Garima
+            </button>
+
             <button
               type="button"
               className={`btn btn-sm ${email === "customer@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700 }}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
               onClick={() => handleRoleSelect("customer@locare.com", "customer123")}
             >
               👤 Customer
@@ -85,7 +108,7 @@ function LoginContent() {
             <button
               type="button"
               className={`btn btn-sm ${email === "vendor@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700 }}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
               onClick={() => handleRoleSelect("vendor@locare.com", "vendor123")}
             >
               🏢 Vendor
@@ -94,7 +117,7 @@ function LoginContent() {
             <button
               type="button"
               className={`btn btn-sm ${email === "admin@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700 }}
+              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
               onClick={() => handleRoleSelect("admin@locare.com", "admin123")}
             >
               🛡️ Admin

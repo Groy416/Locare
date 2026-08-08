@@ -48,7 +48,6 @@ export function aggregateDashboardMetrics(
 ): DashboardMetrics {
   const activeRentals = rentals.filter((r) => r.status === "active");
   const overdueRentals = rentals.filter((r) => r.status === "overdue");
-  const returnedRentals = rentals.filter((r) => r.status === "returned");
 
   const totalActiveRentals = activeRentals.length + overdueRentals.length;
 

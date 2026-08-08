@@ -73,18 +73,23 @@ export async function POST(request: Request) {
       name,
       description,
       category,
-      rentalUnit,
+      rentalUnit = "day",
       price,
+      rentalPrice,
       securityDeposit,
-      inStock,
+      inStock = 5,
       image,
       imageUrl,
       categoryId,
+      attributeValueIds = [],
+      variants = [],
     } = body;
 
-    if (!name || !description || !category || !rentalUnit || price === undefined || securityDeposit === undefined || inStock === undefined) {
+    const finalPrice = price !== undefined ? parseFloat(price) : rentalPrice !== undefined ? parseFloat(rentalPrice) : 0;
+
+    if (!name || !description || !category || finalPrice === undefined || securityDeposit === undefined) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: Name, Description, Category, Price, and Security Deposit." },
         { status: 400 }
       );
     }
@@ -96,12 +101,64 @@ export async function POST(request: Request) {
         category,
         image: image || "/images/placeholder.jpg",
         imageUrl: imageUrl || null,
-        rentalUnit,
-        price: parseFloat(price),
+        rentalUnit: rentalUnit || "day",
+        price: finalPrice,
         securityDeposit: parseFloat(securityDeposit),
-        inStock: parseInt(inStock, 10),
+        inStock: parseInt(String(inStock), 10) || 5,
         categoryId: categoryId || null,
       },
+      include: {
+        categoryRef: true,
+      },
+    });
+
+    // Create default variant if attributeValueIds are provided
+    if (attributeValueIds && attributeValueIds.length > 0) {
+      const variant = await prisma.productVariant.create({
+        data: {
+          productId: newProduct.id,
+          sku: `${newProduct.name.replace(/\s+/g, "-").toUpperCase()}-${newProduct.id}`,
+          price: finalPrice,
+          stock: parseInt(String(inStock), 10) || 5,
+        },
+      });
+
+      for (const valId of attributeValueIds) {
+        if (valId) {
+          await prisma.productVariantAttributeValue.create({
+            data: {
+              variantId: variant.id,
+              attributeValueId: valId,
+            },
+          }).catch(() => {});
+        }
+      }
+    } else if (variants && variants.length > 0) {
+      for (const v of variants) {
+        const variant = await prisma.productVariant.create({
+          data: {
+            productId: newProduct.id,
+            sku: v.sku || `${newProduct.name.replace(/\s+/g, "-").toUpperCase()}-${Math.random().toString(36).substring(2, 6)}`,
+            price: v.price !== undefined ? parseFloat(v.price) : finalPrice,
+            stock: v.stock !== undefined ? parseInt(v.stock, 10) : 5,
+          },
+        });
+        if (v.attributeValueIds && Array.isArray(v.attributeValueIds)) {
+          for (const valId of v.attributeValueIds) {
+            await prisma.productVariantAttributeValue.create({
+              data: {
+                variantId: variant.id,
+                attributeValueId: valId,
+              },
+            }).catch(() => {});
+          }
+        }
+      }
+    }
+
+    // Refetch created product with complete variant relations
+    const fullProduct = await prisma.product.findUnique({
+      where: { id: newProduct.id },
       include: {
         variants: {
           include: {
@@ -115,10 +172,11 @@ export async function POST(request: Request) {
           },
         },
         categoryRef: true,
+        images: true,
       },
     });
 
-    return NextResponse.json(newProduct, { status: 201 });
+    return NextResponse.json(fullProduct, { status: 201 });
   } catch (error) {
     console.error("POST /api/products error:", error);
     return NextResponse.json(

@@ -24,7 +24,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password !== confirmPassword) {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanPassword = password.trim();
+    const cleanConfirm = (confirmPassword || "").trim();
+
+    if (cleanPassword !== cleanConfirm) {
       return NextResponse.json(
         { error: "Password and Confirm Password fields must match." },
         { status: 400 }
@@ -33,28 +37,28 @@ export async function POST(request: Request) {
 
     // Password validation rules from wireframe:
     // Length 6-12, 1 uppercase, 1 lowercase, 1 special char (@, $, #, ...)
-    if (password.length < 6 || password.length > 12) {
+    if (cleanPassword.length < 6 || cleanPassword.length > 12) {
       return NextResponse.json(
         { error: "Password length must be between 6 and 12 characters." },
         { status: 400 }
       );
     }
 
-    if (!/[A-Z]/.test(password)) {
+    if (!/[A-Z]/.test(cleanPassword)) {
       return NextResponse.json(
         { error: "Password must contain at least one uppercase letter." },
         { status: 400 }
       );
     }
 
-    if (!/[a-z]/.test(password)) {
+    if (!/[a-z]/.test(cleanPassword)) {
       return NextResponse.json(
         { error: "Password must contain at least one lowercase letter." },
         { status: 400 }
       );
     }
 
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(cleanPassword)) {
       return NextResponse.json(
         { error: "Password must contain at least one special character (@, $, #, etc.)." },
         { status: 400 }
@@ -63,7 +67,7 @@ export async function POST(request: Request) {
 
     // Check unique email
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: cleanEmail },
     });
 
     if (existingUser) {
@@ -73,15 +77,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const fullName = `${firstName || ""} ${lastName || ""}`.trim() || email.split("@")[0];
+    const passwordHash = await bcrypt.hash(cleanPassword, 10);
+    const fullName = `${firstName || ""} ${lastName || ""}`.trim() || cleanEmail.split("@")[0];
 
     const newUser = await prisma.user.create({
       data: {
         firstName: firstName || null,
         lastName: lastName || null,
         name: fullName,
-        email: email.toLowerCase(),
+        email: cleanEmail,
         passwordHash,
         role: role === "vendor" ? "vendor" : "customer",
         companyName: companyName || null,

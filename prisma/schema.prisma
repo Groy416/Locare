@@ -63,6 +63,7 @@ model Product {
   price           Float // per rental unit
   securityDeposit Float
   inStock         Int
+  status          String           @default("AVAILABLE") // "AVAILABLE" | "RENTED" | "MAINTENANCE" | "OUT_OF_STOCK" | "DISCONTINUED"
   vendorId        String?
   vendor          User?            @relation(fields: [vendorId], references: [id])
   categoryId      String? // optional FK to Category model

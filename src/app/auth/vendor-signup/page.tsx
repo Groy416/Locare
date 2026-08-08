@@ -58,8 +58,9 @@ export default function VendorSignUpPage() {
       if (!res.ok) {
         setError(data.error || "Vendor registration failed.");
       } else {
+        const registeredEmail = formData.email.toLowerCase().trim();
         setSuccess("Vendor registered successfully! Redirecting to login...");
-        setTimeout(() => router.push("/auth/login"), 1500);
+        setTimeout(() => router.push(`/auth/login?email=${encodeURIComponent(registeredEmail)}&registered=true`), 1200);
       }
     } catch {
       setLoading(false);

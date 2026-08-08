@@ -11,14 +11,26 @@ import {
   AlertCircle,
   Sparkles,
   DollarSign,
-  ShieldAlert,
-  Layers,
   Image as ImageIcon,
+  Layers,
+  Tag,
 } from "lucide-react";
+
+interface AttributeValue {
+  id: string;
+  value: string;
+}
+
+interface Attribute {
+  id: string;
+  name: string;
+  values: AttributeValue[];
+}
 
 interface Category {
   id: string;
   name: string;
+  attributes?: Attribute[];
 }
 
 export default function NewProductPage() {
@@ -27,12 +39,20 @@ export default function NewProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("AV Equipment & Electronics");
-  const [categoryId, setCategoryId] = useState("");
-  const [rentalUnit, setRentalUnit] = useState<"hour" | "day" | "week" | "month">("day");
+  const [selectedCategoryName, setSelectedCategoryName] = useState("Clothing");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  
+  // Rental Rate State
+  const [rentalUnit, setRentalUnit] = useState<"day" | "week" | "hour">("day");
   const [price, setPrice] = useState("");
   const [securityDeposit, setSecurityDeposit] = useState("");
   const [inStock, setInStock] = useState("5");
+
+  // Attribute Selections (Size, Color, Brand)
+  const [selectedSizeId, setSelectedSizeId] = useState("");
+  const [selectedColorId, setSelectedColorId] = useState("");
+  const [customColorName, setCustomColorName] = useState("");
+  const [selectedBrandId, setSelectedBrandId] = useState("");
 
   // Image Upload State
   const [file, setFile] = useState<File | null>(null);
@@ -45,21 +65,41 @@ export default function NewProductPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Fetch Categories from /api/categories
+  // Current Selected Category Object
+  const currentCategory = categories.find((c) => c.name === selectedCategoryName || c.id === selectedCategoryId);
+
+  // Fetch Categories & Attributes from /api/categories
   useEffect(() => {
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setCategories(data);
-          if (data.length > 0) {
-            setCategory(data[0].name);
-            setCategoryId(data[0].id);
-          }
+          const firstCat = data.find((c: Category) => c.name === "Clothing") || data[0];
+          setSelectedCategoryName(firstCat.name);
+          setSelectedCategoryId(firstCat.id);
         }
       })
       .catch((err) => console.error("Failed to load categories:", err));
   }, []);
+
+  // Update selected attributes when category changes
+  useEffect(() => {
+    if (currentCategory && currentCategory.attributes) {
+      const sizeAttr = currentCategory.attributes.find((a) => a.name.toLowerCase() === "size");
+      const colorAttr = currentCategory.attributes.find((a) => a.name.toLowerCase() === "color");
+      const brandAttr = currentCategory.attributes.find((a) => a.name.toLowerCase() === "brand");
+
+      if (sizeAttr && sizeAttr.values.length > 0) setSelectedSizeId(sizeAttr.values[0].id);
+      else setSelectedSizeId("");
+
+      if (colorAttr && colorAttr.values.length > 0) setSelectedColorId(colorAttr.values[0].id);
+      else setSelectedColorId("");
+
+      if (brandAttr && brandAttr.values.length > 0) setSelectedBrandId(brandAttr.values[0].id);
+      else setSelectedBrandId("");
+    }
+  }, [selectedCategoryName, currentCategory]);
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -91,9 +131,10 @@ export default function NewProductPage() {
       setUploadedImageUrl(data.url);
       setUploadingImage(false);
       return data.url;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setUploadingImage(false);
-      setErrorMessage(err.message || "Failed to upload image");
+      const errorObj = err as { message?: string };
+      setErrorMessage(errorObj.message || "Failed to upload image");
       return null;
     }
   };
@@ -110,20 +151,29 @@ export default function NewProductPage() {
         finalImageUrl = await handleUploadImage();
       }
 
+      // Collect attributeValueIds
+      const attributeValueIds: string[] = [];
+      if (selectedSizeId) attributeValueIds.push(selectedSizeId);
+      if (selectedColorId && selectedColorId !== "custom") attributeValueIds.push(selectedColorId);
+      if (selectedBrandId) attributeValueIds.push(selectedBrandId);
+
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           description,
-          category,
+          category: selectedCategoryName,
+          categoryId: selectedCategoryId,
           rentalUnit,
           price: parseFloat(price),
+          rentalPrice: parseFloat(price),
           securityDeposit: parseFloat(securityDeposit),
           inStock: parseInt(inStock, 10),
           imageUrl: finalImageUrl || null,
           image: finalImageUrl || "/images/placeholder.jpg",
-          categoryId: categoryId || null,
+          attributeValueIds,
+          customColorName: selectedColorId === "custom" ? customColorName : null,
         }),
       });
 
@@ -138,10 +188,19 @@ export default function NewProductPage() {
           router.push("/admin/products");
         }, 1200);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSubmitting(false);
-      setErrorMessage(err.message || "An unexpected error occurred");
+      const errorObj = err as { message?: string };
+      setErrorMessage(errorObj.message || "An unexpected error occurred");
     }
+  };
+
+  // Helper for dynamic price label
+  const getPriceLabel = () => {
+    if (rentalUnit === "day") return "Price per day: ₹";
+    if (rentalUnit === "week") return "Price per week: ₹";
+    if (rentalUnit === "hour") return "Price per hour: ₹";
+    return "Rental Rate: ₹";
   };
 
   return (
@@ -158,16 +217,16 @@ export default function NewProductPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
               <Package className="w-6 h-6 text-lime-400" />
-              Add New Product Equipment
+              Add New Product Listing
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              Create product listings with dynamic category attributes, images, and rental deposits.
+              Create category-aware product listings with dynamic database attributes, rates, and swatches.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Error & Success Messages */}
+      {/* Error & Success Alerts */}
       {errorMessage && (
         <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
@@ -189,22 +248,22 @@ export default function NewProductPage() {
 
       {/* Form Container */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Basic Details */}
+        {/* Left Column: Details & Dynamic Attributes */}
         <div className="lg:col-span-2 space-y-6">
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-4">
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-lime-400" />
-              Product Details
+              Product Basic Info
             </h2>
 
-            {/* Title */}
+            {/* Product Name */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Product Name</label>
               <input
                 type="text"
                 required
                 className="w-full bg-slate-950 text-sm text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
-                placeholder="e.g. Sony FX3 Cinema Camera Kit"
+                placeholder="e.g. Premium Linen Formal Shirt"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -215,24 +274,28 @@ export default function NewProductPage() {
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Description</label>
               <textarea
                 required
-                rows={4}
+                rows={3}
                 className="w-full bg-slate-950 text-sm text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
-                placeholder="Describe equipment condition, included accessories, and usage guidelines..."
+                placeholder="Describe product specs, material, condition, and included accessories..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
-            {/* Category */}
+            {/* Category Selector (All 4 DB Categories) */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Category</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-lime-400" />
+                Category (Loaded from DB)
+              </label>
               <select
                 className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
-                value={category}
+                value={selectedCategoryName}
                 onChange={(e) => {
-                  setCategory(e.target.value);
-                  const found = categories.find((c) => c.name === e.target.value);
-                  if (found) setCategoryId(found.id);
+                  const catName = e.target.value;
+                  setSelectedCategoryName(catName);
+                  const found = categories.find((c) => c.name === catName);
+                  if (found) setSelectedCategoryId(found.id);
                 }}
               >
                 {categories.length > 0 ? (
@@ -243,14 +306,95 @@ export default function NewProductPage() {
                   ))
                 ) : (
                   <>
-                    <option value="AV Equipment & Electronics">AV Equipment & Electronics</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Footwear">Footwear</option>
+                    <option value="Electronics">Electronics</option>
                     <option value="Furniture">Furniture</option>
-                    <option value="Heavy Machinery">Heavy Machinery</option>
-                    <option value="Access Equipment">Access Equipment</option>
-                    <option value="Cleaning Equipment">Cleaning Equipment</option>
                   </>
                 )}
               </select>
+            </div>
+          </div>
+
+          {/* Dynamic Category-Specific Attributes Section */}
+          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-4">
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <Tag className="w-4 h-4 text-cyan-400" />
+              Category Specific Attributes ({selectedCategoryName})
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Size Attribute */}
+              {currentCategory?.attributes?.some((a) => a.name.toLowerCase() === "size") && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Size Option</label>
+                  <select
+                    className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
+                    value={selectedSizeId}
+                    onChange={(e) => setSelectedSizeId(e.target.value)}
+                  >
+                    {currentCategory.attributes
+                      .find((a) => a.name.toLowerCase() === "size")
+                      ?.values.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.value}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Color Attribute */}
+              {currentCategory?.attributes?.some((a) => a.name.toLowerCase() === "color") && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Color Option</label>
+                  <select
+                    className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
+                    value={selectedColorId}
+                    onChange={(e) => setSelectedColorId(e.target.value)}
+                  >
+                    {currentCategory.attributes
+                      .find((a) => a.name.toLowerCase() === "color")
+                      ?.values.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.value}
+                        </option>
+                      ))}
+                    <option value="custom">+ Add New Custom Color...</option>
+                  </select>
+
+                  {selectedColorId === "custom" && (
+                    <input
+                      type="text"
+                      className="mt-2 w-full bg-slate-950 text-xs text-slate-100 placeholder-slate-500 rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:border-lime-500"
+                      placeholder="e.g. Emerald Green"
+                      value={customColorName}
+                      onChange={(e) => setCustomColorName(e.target.value)}
+                      required
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Brand Attribute (Mango/Zara/H&M/Levis for Clothing, Nike/Adidas for Footwear, Sony/JBL for Electronics) */}
+              {currentCategory?.attributes?.some((a) => a.name.toLowerCase() === "brand") && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Brand / Manufacturer</label>
+                  <select
+                    className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
+                    value={selectedBrandId}
+                    onChange={(e) => setSelectedBrandId(e.target.value)}
+                  >
+                    {currentCategory.attributes
+                      .find((a) => a.name.toLowerCase() === "brand")
+                      ?.values.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.value}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -258,45 +402,46 @@ export default function NewProductPage() {
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-4">
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-emerald-400" />
-              Rental Rates & Deposit
+              Rental Rates & Security Deposit
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Base Price ($)</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Rental Unit</label>
+                <select
+                  className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all font-semibold"
+                  value={rentalUnit}
+                  onChange={(e) => setRentalUnit(e.target.value as "day" | "week" | "hour")}
+                >
+                  <option value="day">per Day (Daily)</option>
+                  <option value="week">per Week (Weekly)</option>
+                  <option value="hour">per Hour (Hourly)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-lime-400 mb-1.5">
+                  {getPriceLabel()}
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   required
-                  className="w-full bg-slate-950 text-sm text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
-                  placeholder="45.00"
+                  className="w-full bg-slate-950 text-sm text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all font-bold"
+                  placeholder="25.00"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Rental Unit</label>
-                <select
-                  className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
-                  value={rentalUnit}
-                  onChange={(e) => setRentalUnit(e.target.value as any)}
-                >
-                  <option value="hour">per Hour</option>
-                  <option value="day">per Day</option>
-                  <option value="week">per Week</option>
-                  <option value="month">per Month</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Security Deposit ($)</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Security Deposit (₹ / $)</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   className="w-full bg-slate-950 text-sm text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
-                  placeholder="150.00"
+                  placeholder="100.00"
                   value={securityDeposit}
                   onChange={(e) => setSecurityDeposit(e.target.value)}
                 />
@@ -307,7 +452,7 @@ export default function NewProductPage() {
                 <input
                   type="number"
                   required
-                  min={0}
+                  min={1}
                   className="w-full bg-slate-950 text-sm text-slate-100 placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
                   placeholder="5"
                   value={inStock}
@@ -318,7 +463,7 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        {/* Right Column: Image Upload & Action */}
+        {/* Right Column: Image Upload & Submit Action */}
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-4">
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
@@ -326,7 +471,6 @@ export default function NewProductPage() {
               Product Image Upload
             </h2>
 
-            {/* Upload Area */}
             <div className="border-2 border-dashed border-slate-800 hover:border-lime-500/60 rounded-2xl p-6 text-center transition-all bg-slate-950/50 relative group">
               <input
                 type="file"
@@ -373,18 +517,17 @@ export default function NewProductPage() {
             )}
           </div>
 
-          {/* Submit Action */}
           <button
             type="submit"
             disabled={submitting}
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-lime-500 via-emerald-500 to-teal-500 text-slate-950 font-bold text-sm shadow-xl shadow-lime-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
           >
             {submitting ? (
-              "Creating Equipment Listing..."
+              "Creating Product..."
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                Publish Equipment Listing
+                Publish Product Listing
               </>
             )}
           </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import Link from "next/link";
 
 interface OrderLine {
@@ -34,6 +34,8 @@ interface RentalOrder {
   taxAmount: number;
   totalAmount: number;
   depositAmount: number;
+  lateFeeCharged?: number;
+  depositStatus?: string;
   orderLines: OrderLine[];
   invoices: Invoice[];
 }
@@ -43,8 +45,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [order, setOrder] = useState<RentalOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrder = () => {
-    setLoading(true);
+  const fetchOrder = useCallback(() => {
     fetch(`/api/orders/${id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -52,11 +53,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       })
       .catch((err) => console.error("Error fetching order:", err))
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchOrder();
-  }, [id]);
+  }, [fetchOrder]);
 
   const handleUpdateStatus = async (targetStatus: string) => {
     try {
@@ -141,12 +142,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               >
                 Create Invoice
               </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => handleUpdateStatus("PICKED_UP")}
-              >
-                Pickup
-              </button>
+              {order.status !== "PICKED_UP" && order.status !== "RETURNED" && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ background: "#0284c7", borderColor: "#38bdf8" }}
+                  onClick={() => handleUpdateStatus("PICKED_UP")}
+                >
+                  📦 Process Pick Up
+                </button>
+              )}
+              {order.status !== "RETURNED" && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ background: "#059669", borderColor: "#10b981" }}
+                  onClick={() => handleUpdateStatus("RETURNED")}
+                >
+                  🔄 Process Return
+                </button>
+              )}
+              {order.status === "RETURNED" && (
+                <span className="badge badge-active" style={{ background: "rgba(16,185,129,0.2)", color: "#10b981", fontWeight: 700 }}>
+                  ✓ Returned & Stock Restored
+                </span>
+              )}
             </>
           )}
 
@@ -287,12 +305,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <div className="total-row">
             <span>Refundable Deposit Held:</span>
             <strong style={{ color: "var(--warning)" }}>
-              ${order.depositAmount.toLocaleString()}
+              ₹{order.depositAmount.toLocaleString()}
             </strong>
           </div>
+          {order.lateFeeCharged !== undefined && order.lateFeeCharged > 0 && (
+            <div className="total-row" style={{ color: "#ef4444" }}>
+              <span>⚠️ Calculated Late Fine:</span>
+              <strong>+₹{order.lateFeeCharged.toLocaleString()}</strong>
+            </div>
+          )}
+          {order.lateFeeCharged !== undefined && order.lateFeeCharged > 0 && (
+            <div className="total-row">
+              <span>Deposit Settlement ({order.depositStatus || "held"}):</span>
+              <strong style={{ color: "#10b981" }}>
+                ₹{Math.max(0, order.depositAmount - order.lateFeeCharged).toLocaleString()} Refunded
+              </strong>
+            </div>
+          )}
           <div className="total-row total-row-grand">
             <span>Total Amount:</span>
-            <strong>${order.totalAmount.toLocaleString()}</strong>
+            <strong>₹{order.totalAmount.toLocaleString()}</strong>
           </div>
         </div>
 

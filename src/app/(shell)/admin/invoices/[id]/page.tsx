@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import Link from "next/link";
 
 interface OrderLine {
@@ -35,8 +35,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchInvoice = () => {
-    setLoading(true);
+  const fetchInvoice = useCallback(() => {
     fetch("/api/invoices")
       .then((res) => res.json())
       .then((data: InvoiceDetail[]) => {
@@ -45,11 +44,11 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchInvoice();
-  }, [id]);
+  }, [fetchInvoice]);
 
   const handleUpdateStatus = async (targetStatus: string) => {
     try {

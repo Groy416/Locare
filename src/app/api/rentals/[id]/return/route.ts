@@ -57,6 +57,21 @@ export async function POST(
       },
     });
 
+    // Restore product stock and sync status (if 0 sold out before, now 1 Available!)
+    for (const line of order.orderLines) {
+      if (line.productId) {
+        const prod = await prisma.product.findUnique({ where: { id: line.productId } });
+        const newStock = (prod?.inStock || 0) + line.quantity;
+        await prisma.product.update({
+          where: { id: line.productId },
+          data: {
+            inStock: newStock,
+            status: newStock > 0 ? "AVAILABLE" : "OUT_OF_STOCK",
+          },
+        }).catch((err) => console.error("Failed to restore stock on return:", err));
+      }
+    }
+
     return NextResponse.json({
       rental: updatedOrder,
       lateFee,

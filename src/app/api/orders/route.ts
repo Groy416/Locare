@@ -131,6 +131,20 @@ export async function POST(request: Request) {
       },
     });
 
+    // Decrement inStock inventory count for ordered products
+    for (const line of formattedLines) {
+      if (line.productId) {
+        const prod = await prisma.product.findUnique({ where: { id: line.productId } });
+        if (prod) {
+          const newStock = Math.max(0, prod.inStock - line.quantity);
+          await prisma.product.update({
+            where: { id: line.productId },
+            data: { inStock: newStock },
+          }).catch((err) => console.error("Failed to update product stock:", err));
+        }
+      }
+    }
+
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
     console.error("POST /api/orders error:", error);

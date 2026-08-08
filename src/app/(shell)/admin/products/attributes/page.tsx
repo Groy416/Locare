@@ -18,7 +18,6 @@ export default function ProductAttributesPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchAttributes = () => {
-    setLoading(true);
     fetch("/api/attributes")
       .then((res) => res.json())
       .then((data) => {

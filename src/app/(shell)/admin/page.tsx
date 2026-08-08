@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
 interface OrderLine {
@@ -34,8 +34,7 @@ export default function AdminOrderManagementPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = () => {
-    setLoading(true);
+  const fetchOrders = useCallback(() => {
     const query = new URLSearchParams();
     if (filter !== "all") query.set("filter", filter);
     if (search) query.set("search", search);
@@ -48,11 +47,24 @@ export default function AdminOrderManagementPage() {
       })
       .catch((err) => console.error("Error fetching orders:", err))
       .finally(() => setLoading(false));
+  }, [filter, search]);
+
+  const handleActionStatus = async (orderId: string | number, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) fetchOrders();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
     fetchOrders();
-  }, [filter, search]);
+  }, [fetchOrders]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -219,9 +231,31 @@ export default function AdminOrderManagementPage() {
                   <td style={{ fontWeight: 700 }}>${order.totalAmount.toLocaleString()}</td>
                   <td>{getInvoiceBadge(order.invoiceStatus)}</td>
                   <td>
-                    <Link href={`/admin/orders/${order.id}`} className="btn btn-ghost btn-sm">
-                      View Order ➔
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      {order.status !== "PICKED_UP" && order.status !== "RETURNED" && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ background: "#0284c7", borderColor: "#38bdf8", fontSize: "0.72rem", padding: "3px 8px" }}
+                          onClick={() => handleActionStatus(order.id, "PICKED_UP")}
+                        >
+                          📦 Pick Up
+                        </button>
+                      )}
+
+                      {order.status !== "RETURNED" && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ background: "#059669", borderColor: "#10b981", fontSize: "0.72rem", padding: "3px 8px" }}
+                          onClick={() => handleActionStatus(order.id, "RETURNED")}
+                        >
+                          🔄 Return
+                        </button>
+                      )}
+
+                      <Link href={`/admin/orders/${order.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: "0.75rem" }}>
+                        View ➔
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
