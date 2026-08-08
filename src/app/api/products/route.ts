@@ -19,6 +19,7 @@ export async function GET() {
           },
         },
         categoryRef: true,
+        images: true,
       },
     });
 
@@ -54,6 +55,7 @@ export async function GET() {
             },
           },
           categoryRef: true,
+          images: true,
         },
       });
     }

@@ -1,11 +1,30 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { products, type Product } from "@/lib/data";
+import { products as fallbackProducts, type Product } from "@/lib/data";
 import { useCart, calculateRentalUnits, formatRentalUnit } from "@/lib/cart-context";
 import ProductIcon from "@/components/ProductIcon";
+
+interface ResolvedAttributeValue {
+  attribute: string;
+  value: string;
+}
+
+interface DBVariant {
+  id: string;
+  sku: string;
+  price: number;
+  stock: number;
+  attributeValues: ResolvedAttributeValue[];
+}
+
+interface DBProduct extends Product {
+  images?: { id: string; url: string }[];
+  variants?: DBVariant[] | any;
+  colors?: string[];
+}
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -22,7 +41,9 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { addItem } = useCart();
   const productId = params.id as string;
-  const product = products.find((p) => p.id === productId);
+
+  const [dbProduct, setDbProduct] = useState<DBProduct | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Form State
   const [rentalStart, setRentalStart] = useState(getTodayString());
@@ -30,15 +51,83 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  // Configure Variant Modal state
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [selectedVariantOpts, setSelectedVariantOpts] = useState<Record<string, string>>({});
+  // Variant selection state
+  const [selectedAttributeValues, setSelectedAttributeValues] = useState<Record<string, string>>({});
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Fetch product from API
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/products/${productId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && !data.error) {
+          setDbProduct(data);
+          if (data.imageUrl) setSelectedImage(data.imageUrl);
+          else if (data.images && data.images.length > 0) setSelectedImage(data.images[0].url);
+        } else {
+          // Fallback to in-memory data
+          const found = fallbackProducts.find((p) => p.id === productId);
+          if (found) setDbProduct(found);
+        }
+      })
+      .catch(() => {
+        const found = fallbackProducts.find((p) => p.id === productId);
+        if (found) setDbProduct(found);
+      })
+      .finally(() => setLoading(false));
+  }, [productId]);
+
+  const product = dbProduct;
+
+  // Group attributes for picker (e.g. Color -> ["Red", "Blue", "Black"])
+  const attributeGroups = useMemo(() => {
+    if (!product || !product.variants || !Array.isArray(product.variants)) return {};
+
+    const groups: Record<string, Set<string>> = {};
+    for (const variant of product.variants as DBVariant[]) {
+      if (variant.attributeValues && Array.isArray(variant.attributeValues)) {
+        for (const av of variant.attributeValues) {
+          const attrName = av.attribute || "Option";
+          if (!groups[attrName]) groups[attrName] = new Set();
+          groups[attrName].add(av.value);
+        }
+      }
+    }
+
+    const result: Record<string, string[]> = {};
+    for (const [k, v] of Object.entries(groups)) {
+      result[k] = Array.from(v);
+    }
+    return result;
+  }, [product]);
+
+  // Find active variant matching selected attributes
+  const activeVariant = useMemo(() => {
+    if (!product || !product.variants || !Array.isArray(product.variants)) return null;
+
+    const selectedEntries = Object.entries(selectedAttributeValues);
+    if (selectedEntries.length === 0) return null;
+
+    return (product.variants as DBVariant[]).find((v) => {
+      if (!v.attributeValues) return false;
+      return selectedEntries.every(([attr, val]) =>
+        v.attributeValues.some(
+          (av) => av.attribute?.toLowerCase() === attr.toLowerCase() && av.value === val
+        )
+      );
+    });
+  }, [product, selectedAttributeValues]);
+
+  // Active Price & Stock
+  const activePrice = activeVariant ? activeVariant.price : product?.price || 0;
+  const activeStock = activeVariant ? activeVariant.stock : product?.inStock ?? 0;
 
   // Computed Cost
   const costBreakdown = useMemo(() => {
     if (!product) return null;
     const units = calculateRentalUnits(rentalStart, rentalEnd, product.rentalUnit);
-    const rentalCost = product.price * units * quantity;
+    const rentalCost = activePrice * units * quantity;
     const depositTotal = product.securityDeposit * quantity;
     const grandTotal = rentalCost + depositTotal;
 
@@ -49,7 +138,17 @@ export default function ProductDetailPage() {
       grandTotal,
       unitLabel: formatRentalUnit(product.rentalUnit, units),
     };
-  }, [product, rentalStart, rentalEnd, quantity]);
+  }, [product, activePrice, rentalStart, rentalEnd, quantity]);
+
+  if (loading) {
+    return (
+      <div className="page-shell animate-fade-in">
+        <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)" }}>
+          Loading product details...
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -65,21 +164,14 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Handle Add to Cart
-  const handleAddToCartClick = () => {
-    if (product.variants && product.variants.length > 0 && Object.keys(selectedVariantOpts).length === 0) {
-      // Open Configure modal pop-up per Image 4 wireframe
-      setShowConfigModal(true);
-    } else {
-      executeAddToCart();
-    }
-  };
-
-  const executeAddToCart = () => {
+  const handleAddToCart = () => {
     if (!costBreakdown) return;
 
     addItem({
-      product,
+      product: {
+        ...product,
+        price: activePrice,
+      },
       quantity,
       rentalStart,
       rentalEnd,
@@ -88,19 +180,17 @@ export default function ProductDetailPage() {
       depositTotal: costBreakdown.depositTotal,
     });
 
-    setShowConfigModal(false);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2500);
   };
 
-  // Express Checkout button directly routes to checkout
   const handleExpressCheckout = () => {
-    if (!costBreakdown) return;
-    executeAddToCart();
+    handleAddToCart();
     router.push("/customer/checkout");
   };
 
-  const isOutOfStock = product.inStock === 0;
+  const isOutOfStock = activeStock === 0;
+  const mainImgSrc = selectedImage || (product as any).imageUrl || product.image;
 
   return (
     <div className="page-shell animate-fade-in">
@@ -111,20 +201,59 @@ export default function ProductDetailPage() {
       </nav>
 
       <div className="detail-layout">
-        {/* Left: Product Media & Specs */}
+        {/* Left: Product Media & Enlarged Image Display */}
         <div className="detail-left">
-          <ProductIcon category={product.category} size="lg" />
+          <div className="card product-enlarged-card" style={{ padding: 24, textAlign: "center" }}>
+            {mainImgSrc && mainImgSrc.startsWith("/") && !mainImgSrc.includes("placeholder") ? (
+              <img
+                src={mainImgSrc}
+                alt={product.name}
+                style={{
+                  maxHeight: 320,
+                  maxWidth: "100%",
+                  objectFit: "contain",
+                  borderRadius: "var(--radius-md)",
+                }}
+              />
+            ) : (
+              <ProductIcon category={product.category} size="lg" />
+            )}
 
-          <div className="detail-info">
-            <span className="product-category">{product.brand} • {product.category}</span>
+            {/* Thumbnail selector if multiple images exist */}
+            {product.images && product.images.length > 0 && (
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16 }}>
+                {product.images.map((img) => (
+                  <img
+                    key={img.id}
+                    src={img.url}
+                    alt="Thumbnail"
+                    style={{
+                      width: 54,
+                      height: 54,
+                      objectFit: "cover",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      border: selectedImage === img.url ? "2px solid var(--primary)" : "1px solid var(--border)",
+                    }}
+                    onClick={() => setSelectedImage(img.url)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="detail-info" style={{ marginTop: 20 }}>
+            <span className="product-category">
+              {product.brand || product.category} • {product.rentalUnit.toUpperCase()} RENTAL
+            </span>
             <h1 className="detail-title">{product.name}</h1>
             <p className="detail-description">{product.description}</p>
 
             <div className="detail-specs">
               <div className="detail-spec">
-                <span className="detail-spec-label">Rental Rate</span>
+                <span className="detail-spec-label">Base Rate</span>
                 <span className="detail-spec-value">
-                  ${product.price} / per {product.rentalUnit}
+                  ${activePrice} / per {product.rentalUnit}
                 </span>
               </div>
               <div className="detail-spec">
@@ -137,17 +266,71 @@ export default function ProductDetailPage() {
                   className="detail-spec-value"
                   style={{ color: !isOutOfStock ? "var(--success)" : "var(--danger)" }}
                 >
-                  {!isOutOfStock ? `${product.inStock} Available` : "Out of Stock"}
+                  {!isOutOfStock ? `${activeStock} Available` : "Out of Stock"}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Booking Configuration Form (Image 4 Wireframe) */}
+        {/* Right: Booking & Dynamic Variant Attribute Selection */}
         <div className="detail-right">
           <div className="booking-card">
-            <h2 className="booking-card-title">Configure Rental Period</h2>
+            <h2 className="booking-card-title">Configure Rental Options</h2>
+
+            {/* ─── Dynamic Attribute & Color Swatches Picker ─────────── */}
+            {Object.keys(attributeGroups).length > 0 && (
+              <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                {Object.entries(attributeGroups).map(([attrName, values]) => (
+                  <div key={attrName} className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700 }}>
+                      Select {attrName}:
+                    </label>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {values.map((val) => {
+                        const isSelected = selectedAttributeValues[attrName] === val;
+                        const isColorAttr = attrName.toLowerCase() === "color";
+
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            className={`btn btn-sm ${isSelected ? "btn-primary" : "btn-ghost"}`}
+                            style={{
+                              borderRadius: isColorAttr ? "var(--radius-full)" : undefined,
+                              fontWeight: 600,
+                            }}
+                            onClick={() =>
+                              setSelectedAttributeValues((prev) => ({
+                                ...prev,
+                                [attrName]: val,
+                              }))
+                            }
+                          >
+                            {isColorAttr && "🎨 "}
+                            {val}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {activeVariant && (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 6,
+                      background: "var(--bg-elevated)",
+                      fontSize: "0.82rem",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    SKU: <strong>{activeVariant.sku}</strong> • Price: ${activeVariant.price} • Stock: {activeVariant.stock}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Date Pickers */}
             <div className="form-row">
@@ -202,15 +385,15 @@ export default function ProductDetailPage() {
                   className="quantity-input"
                   value={quantity}
                   min={1}
-                  max={product.inStock}
+                  max={activeStock}
                   onChange={(e) =>
-                    setQuantity(Math.max(1, Math.min(product.inStock, parseInt(e.target.value) || 1)))
+                    setQuantity(Math.max(1, Math.min(activeStock || 1, parseInt(e.target.value) || 1)))
                   }
                 />
                 <button
                   className="quantity-btn"
-                  onClick={() => setQuantity((q) => Math.min(product.inStock, q + 1))}
-                  disabled={quantity >= product.inStock}
+                  onClick={() => setQuantity((q) => Math.min(activeStock, q + 1))}
+                  disabled={quantity >= activeStock}
                 >
                   +
                 </button>
@@ -240,11 +423,11 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Action Buttons: Add to Cart & Express Checkout (Image 4 Wireframe) */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Action Buttons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
               <button
                 className={`btn btn-primary btn-block btn-lg ${addedToCart ? "btn-success-flash" : ""}`}
-                onClick={handleAddToCartClick}
+                onClick={handleAddToCart}
                 disabled={isOutOfStock}
               >
                 {isOutOfStock
@@ -265,69 +448,6 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* ─── Configure Variant Modal (Image 4 Wireframe Pop-Up Dialog) ─────── */}
-      {showConfigModal && product.variants && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h3 className="modal-title">Configure Product Options</h3>
-              <button
-                className="modal-close-btn"
-                onClick={() => setShowConfigModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              Please choose your preferred variant options for <strong>{product.name}</strong> before adding to cart.
-            </p>
-
-            {product.variants.map((v) => (
-              <div key={v.id} className="form-group">
-                <label className="form-label">{v.name}</label>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {v.options.map((opt) => {
-                    const isSelected = selectedVariantOpts[v.id] === opt;
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        className={`btn ${isSelected ? "btn-primary" : "btn-ghost"} btn-sm`}
-                        onClick={() =>
-                          setSelectedVariantOpts((prev) => ({
-                            ...prev,
-                            [v.id]: opt,
-                          }))
-                        }
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-              <button
-                className="btn btn-primary btn-block"
-                onClick={executeAddToCart}
-              >
-                Confirm & Add to Cart
-              </button>
-
-              <button
-                className="btn btn-ghost"
-                onClick={() => setShowConfigModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
