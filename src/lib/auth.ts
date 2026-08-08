@@ -17,59 +17,66 @@ export const authOptions: NextAuthOptions = {
         const cleanEmail = credentials.email.toLowerCase().trim();
         const cleanPassword = (credentials.password || "").trim();
 
-        let user = await prisma.user.findUnique({
-          where: { email: cleanEmail },
-        });
+        // 1. Instant check for Demo Accounts (Admin, Vendor, Customer)
+        if (
+          cleanEmail === "customer@locare.com" ||
+          cleanEmail === "vendor@locare.com" ||
+          cleanEmail === "admin@locare.com"
+        ) {
+          const role = cleanEmail.startsWith("customer")
+            ? "customer"
+            : cleanEmail.startsWith("vendor")
+            ? "vendor"
+            : "admin";
 
-        // Auto-create demo accounts if missing from database
-        if (!user && (cleanEmail === "customer@locare.com" || cleanEmail === "vendor@locare.com" || cleanEmail === "admin@locare.com")) {
-          const role = cleanEmail.startsWith("customer") ? "customer" : cleanEmail.startsWith("vendor") ? "vendor" : "admin";
-          const defaultPassword = cleanEmail.startsWith("customer") ? "customer123" : cleanEmail.startsWith("vendor") ? "vendor123" : "admin123";
-          const passwordHash = await bcrypt.hash(defaultPassword, 10);
+          let dbUser = null;
+          try {
+            dbUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
+          } catch (e) {
+            console.error("Demo auth DB check error:", e);
+          }
 
-          user = await prisma.user.create({
-            data: {
-              name: role.toUpperCase(),
-              email: cleanEmail,
-              passwordHash,
-              role,
-            },
-          });
-        }
-
-        // Demo accounts never fail login
-        if (cleanEmail === "customer@locare.com" || cleanEmail === "vendor@locare.com" || cleanEmail === "admin@locare.com") {
           return {
-            id: user?.id || "demo-user-id",
-            name: user?.name || cleanEmail.split("@")[0].toUpperCase(),
+            id: dbUser?.id || `demo-${role}-id`,
+            name: dbUser?.name || `${role.toUpperCase()} User`,
             email: cleanEmail,
-            role: cleanEmail.startsWith("customer") ? "customer" : cleanEmail.startsWith("vendor") ? "vendor" : "admin",
+            role: role,
           };
         }
 
-        if (!user) return null;
+        // 2. Database lookup for custom registered users
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: cleanEmail },
+          });
 
-        let isValid = false;
-        if (user.passwordHash && cleanPassword) {
-          try {
-            isValid =
-              (await bcrypt.compare(cleanPassword, user.passwordHash)) ||
-              (await bcrypt.compare(credentials.password, user.passwordHash));
-          } catch {
+          if (!user) return null;
+
+          let isValid = false;
+          if (user.passwordHash && cleanPassword) {
+            try {
+              isValid =
+                (await bcrypt.compare(cleanPassword, user.passwordHash)) ||
+                (await bcrypt.compare(credentials.password, user.passwordHash));
+            } catch {
+              isValid = true;
+            }
+          } else {
             isValid = true;
           }
-        } else {
-          isValid = true;
+
+          if (!isValid) return null;
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error("Authorize error:", error);
+          return null;
         }
-
-        if (!isValid) return null;
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
       },
     }),
   ],
