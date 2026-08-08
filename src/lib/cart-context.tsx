@@ -24,9 +24,9 @@ export interface CartItem {
 interface CartContextValue {
   items: CartItem[];
   addItem: (item: CartItem) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  updateItemDates: (productId: string, start: string, end: string) => void;
+  removeItem: (productId: string | number) => void;
+  updateQuantity: (productId: string | number, quantity: number) => void;
+  updateItemDates: (productId: string | number, start: string, end: string) => void;
   clearCart: () => void;
   totalRentalCost: number;
   totalDeposit: number;
@@ -47,12 +47,16 @@ export function calculateRentalUnits(
   const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 
   switch (unit) {
+    case "hour":
+      return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60)));
     case "day":
       return diffDays;
     case "week":
       return Math.max(1, Math.ceil(diffDays / 7));
     case "month":
       return Math.max(1, Math.ceil(diffDays / 30));
+    default:
+      return diffDays;
   }
 }
 
@@ -80,11 +84,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
+  const removeItem = useCallback((productId: string | number) => {
     setItems((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string | number, quantity: number) => {
     setItems((prev) =>
       prev.map((i) => {
         if (i.product.id !== productId) return i;
@@ -97,7 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateItemDates = useCallback(
-    (productId: string, start: string, end: string) => {
+    (productId: string | number, start: string, end: string) => {
       setItems((prev) =>
         prev.map((i) => {
           if (i.product.id !== productId) return i;

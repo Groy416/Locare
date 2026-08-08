@@ -8,44 +8,57 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const numId = parseInt(id, 10);
     const body = await request.json().catch(() => ({}));
     const damageCharge = Number(body.damageCharge) || 0;
 
-    const rental = await prisma.rental.findUnique({
-      where: { id },
-      include: { product: true },
+    const order = await prisma.rentalOrder.findFirst({
+      where: !isNaN(numId)
+        ? { OR: [{ id: numId }, { orderNumber: id }] }
+        : { orderNumber: id },
+      include: {
+        orderLines: {
+          include: { product: true },
+        },
+      },
     });
 
-    if (!rental) {
+    if (!order) {
       return NextResponse.json({ error: "Rental order not found" }, { status: 404 });
     }
 
-    const config = (await prisma.lateFeeConfig.findFirst()) || {
+    const config = (await prisma.pickupReturnSetting.findFirst()) || {
       dailyRate: 15,
       gracePeriodDays: 1,
     };
 
-    const lateFee = calculateLateFee(rental.rentalEnd, config);
-    const refundAmount = calculateDepositRefund(rental.depositAmount, lateFee, damageCharge);
+    const lateFee = calculateLateFee(order.rentalEnd, {
+      dailyRate: config.dailyRate,
+      gracePeriodDays: config.gracePeriodDays,
+    });
+    const refundAmount = calculateDepositRefund(order.depositAmount, lateFee, damageCharge);
 
     let newDepositStatus = "refunded";
     if (lateFee + damageCharge > 0) {
       newDepositStatus = "partially-deducted";
     }
 
-    const updatedRental = await prisma.rental.update({
-      where: { id },
+    const updatedOrder = await prisma.rentalOrder.update({
+      where: { id: order.id },
       data: {
-        status: "returned",
+        status: "RETURNED",
         lateFeeCharged: lateFee,
-        damageCharge: damageCharge,
         depositStatus: newDepositStatus,
       },
-      include: { product: true },
+      include: {
+        orderLines: {
+          include: { product: true },
+        },
+      },
     });
 
     return NextResponse.json({
-      rental: updatedRental,
+      rental: updatedOrder,
       lateFee,
       damageCharge,
       refundAmount,

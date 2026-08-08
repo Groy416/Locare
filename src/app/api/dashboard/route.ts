@@ -2,16 +2,40 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { aggregateDashboardMetrics, calculateLateFee } from "@/lib/rental-logic";
 import type { Rental, Product } from "@/lib/data";
+import { products as seedProducts, rentals as seedRentals } from "@/lib/data";
 
 export async function GET() {
   try {
-    const dbProducts = await prisma.product.findMany();
-    const dbRentals = await prisma.rental.findMany({
-      include: { product: true },
+    let dbProducts = await prisma.product.findMany();
+    let dbOrders = await prisma.rentalOrder.findMany({
+      include: {
+        orderLines: {
+          include: { product: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
-    const lateConfig = (await prisma.lateFeeConfig.findFirst()) || {
+    // Auto-seed products if DB is empty
+    if (dbProducts.length === 0) {
+      for (const prod of seedProducts) {
+        await prisma.product.create({
+          data: {
+            name: prod.name,
+            description: prod.description,
+            category: prod.category,
+            image: prod.image,
+            rentalUnit: prod.rentalUnit,
+            price: prod.price,
+            securityDeposit: prod.securityDeposit,
+            inStock: prod.inStock,
+          },
+        }).catch(() => {});
+      }
+      dbProducts = await prisma.product.findMany();
+    }
+
+    const lateConfig = (await prisma.pickupReturnSetting.findFirst()) || {
       dailyRate: 15,
       gracePeriodDays: 1,
     };
@@ -29,20 +53,26 @@ export async function GET() {
       inStock: p.inStock,
     }));
 
-    // Format rentals to match Rental interface
-    const rentals: Rental[] = dbRentals.map((r) => {
+    // Format orders to match Rental interface
+    const rentals: Rental[] = dbOrders.map((r) => {
       let depStatus: Rental["depositStatus"] = "held";
       if (r.depositStatus === "refunded") depStatus = "refunded";
-      if (r.depositStatus === "partially_deducted") depStatus = "partially-deducted";
+      if (r.depositStatus === "partially_deducted" || r.depositStatus === "partially-deducted") depStatus = "partially-deducted";
+
+      let statusMap: Rental["status"] = "booked";
+      if (r.status === "PICKED_UP") statusMap = "active";
+      else if (r.status === "RETURNED") statusMap = "returned";
+      else if (r.status === "OVERDUE") statusMap = "overdue";
+      else if (r.status === "CONFIRMED") statusMap = "active";
 
       return {
         id: r.id,
-        productId: r.productId,
+        productId: r.orderLines[0]?.productId || "prod-001",
         customerName: r.customerName,
         rentalStart: r.rentalStart,
         rentalEnd: r.rentalEnd,
         deliveryMethod: r.deliveryMethod as Rental["deliveryMethod"],
-        status: r.status as Rental["status"],
+        status: statusMap,
         depositAmount: r.depositAmount,
         depositStatus: depStatus,
         lateFeeCharged: r.lateFeeCharged,
@@ -51,11 +81,13 @@ export async function GET() {
 
     const metrics = aggregateDashboardMetrics(rentals, products);
 
-    // Filter active and overdue rentals for returns queue
-    const returnsQueue = dbRentals
-      .filter((r) => r.status === "active" || r.status === "overdue")
+    const returnsQueue = dbOrders
+      .filter((r) => r.status === "CONFIRMED" || r.status === "PICKED_UP" || r.status === "OVERDUE")
       .map((r) => {
-        const estimatedLateFee = calculateLateFee(r.rentalEnd, lateConfig);
+        const estimatedLateFee = calculateLateFee(r.rentalEnd, {
+          dailyRate: lateConfig.dailyRate,
+          gracePeriodDays: lateConfig.gracePeriodDays,
+        });
         return {
           ...r,
           estimatedLateFee,
@@ -65,14 +97,19 @@ export async function GET() {
     return NextResponse.json({
       metrics,
       rentals,
+      products,
       returnsQueue,
       lateConfig,
     });
   } catch (error) {
     console.error("GET /api/dashboard error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch dashboard metrics" },
-      { status: 500 }
-    );
+    const metrics = aggregateDashboardMetrics(seedRentals, seedProducts);
+    return NextResponse.json({
+      metrics,
+      rentals: seedRentals,
+      products: seedProducts,
+      returnsQueue: seedRentals.filter((r: Rental) => r.status === "active" || r.status === "overdue"),
+      lateConfig: { dailyRate: 15, gracePeriodDays: 1 },
+    });
   }
 }

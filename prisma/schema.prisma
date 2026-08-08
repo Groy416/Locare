@@ -4,75 +4,196 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 // ─── User Model ─────────────────────────────────────────────────────────────
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("customer") // "admin" | "customer"
-  rentals      Rental[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String        @id @default(uuid())
+  firstName       String?
+  lastName        String?
+  name            String
+  email           String        @unique
+  passwordHash    String
+  role            String        @default("customer") // "admin" | "vendor" | "customer"
+  companyName     String?
+  productCategory String?
+  gstNo           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  products        Product[]
+  rentalOrders    RentalOrder[]
+}
+
+// ─── Category Model ──────────────────────────────────────────────────────────
+model Category {
+  id         String      @id @default(cuid())
+  name       String
+  products   Product[]
+  attributes Attribute[]
+}
+
+// ─── Attribute Model ──────────────────────────────────────────────────────────
+model Attribute {
+  id         String           @id @default(cuid())
+  name       String
+  categoryId String
+  category   Category         @relation(fields: [categoryId], references: [id])
+  values     AttributeValue[]
+}
+
+// ─── AttributeValue Model ─────────────────────────────────────────────────────
+model AttributeValue {
+  id          String                         @id @default(cuid())
+  attributeId String
+  attribute   Attribute                      @relation(fields: [attributeId], references: [id])
+  value       String
+  variants    ProductVariantAttributeValue[]
 }
 
 // ─── Product Model ───────────────────────────────────────────────────────────
-
-// EXTENSIBILITY NOTE:
-// To support multi-vendor / marketplace capabilities in future iterations:
-// - Add a `vendorId String?` field to `Product`
-// - Link it to a `Vendor` table: `vendor Vendor? @relation(fields: [vendorId], references: [id])`
 model Product {
-  id              String   @id @default(uuid())
+  id              Int              @id @default(autoincrement())
   name            String
   description     String
   category        String
-  image           String   // image path or URL
-  rentalUnit      String   // "day" | "week" | "month"
-  price           Float    // per rental unit
-  securityDeposit Float    // fixed deposit amount
+  image           String // image path or SVG illustration
+  imageUrl        String? // uploaded image URL (from /api/upload)
+  rentalUnit      String           @default("day") // "hour" | "day" | "week" | "month"
+  price           Float // per rental unit
+  securityDeposit Float
   inStock         Int
-  rentals         Rental[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  vendorId        String?
+  vendor          User?            @relation(fields: [vendorId], references: [id])
+  categoryId      String? // optional FK to Category model
+  categoryRef     Category?        @relation(fields: [categoryId], references: [id])
+  uploadedBy      String?          // userId of user/admin who listed it
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  orderLines      OrderLine[]
+  variants        ProductVariant[]
+  images          ProductImage[]
 }
 
-// ─── Rental Model ───────────────────────────────────────────────────────────
+// ─── ProductImage Model ──────────────────────────────────────────────────────
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+}
 
-// EXTENSIBILITY NOTE:
-// The `status` field currently maps 1:1 to the MVP data model ("booked"|"active"|"returned"|"overdue").
-// In a full commercial quotation & rental lifecycle, this status can expand to:
-// - DRAFT (Quotation Draft)
-// - QUOTATION_SENT (Quotation sent to client)
-// - CONFIRMED (Quotation confirmed / Sales Order)
-// - BOOKED (Reservation locked in)
-// - ACTIVE (Picked up / Delivered to customer)
-// - RETURNED (Item returned & deposit settled)
-// - CANCELLED (Booking cancelled)
-// - OVERDUE (Past return date without check-in)
-model Rental {
-  id              String   @id @default(uuid())
-  productId       String
-  product         Product  @relation(fields: [productId], references: [id])
-  userId          String?
-  user            User?    @relation(fields: [userId], references: [id])
+// ─── ProductVariant Model ─────────────────────────────────────────────────────
+model ProductVariant {
+  id              String                         @id @default(cuid())
+  productId       Int
+  product         Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku             String
+  price           Float
+  stock           Int
+  attributeValues ProductVariantAttributeValue[]
+}
+
+// ─── ProductVariantAttributeValue (join table) ────────────────────────────────
+model ProductVariantAttributeValue {
+  variantId        String
+  variant          ProductVariant @relation(fields: [variantId], references: [id])
+  attributeValueId String
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id])
+
+  @@id([variantId, attributeValueId])
+}
+
+// ─── Product Attribute Model ──────────────────────────────────────────────────
+model ProductAttribute {
+  id          String   @id @default(uuid())
+  name        String
+  displayType String   @default("radio") // "radio" | "pills" | "select"
+  values      String // JSON string of options
+  createdAt   DateTime @default(now())
+}
+
+// ─── Quotation Template Model ─────────────────────────────────────────────────
+model QuotationTemplate {
+  id            String   @id @default(uuid())
+  name          String
+  validityDays  Int      @default(30)
+  paymentTerms  String   @default("Immediate Payment")
+  templateLines String // JSON array of default products & quantities
+  createdAt     DateTime @default(now())
+}
+
+// ─── Rental Order Model (Quotation / Sale Order) ─────────────────────────────
+// Status: "QUOTATION" | "QUOTATION_SENT" | "CONFIRMED" | "PICKED_UP" | "RETURNED" | "CANCELLED" | "OVERDUE"
+// Invoice Status: "NOTHING_TO_INVOICE" | "WAITING_TO_INVOICE" | "DRAFT_INVOICE" | "POSTED" | "PAID"
+model RentalOrder {
+  id              Int         @id @default(autoincrement())
+  orderNumber     String      @unique // e.g., SO00001
+  customerId      String?
+  customer        User?       @relation(fields: [customerId], references: [id])
   customerName    String
-  rentalStart     String   // ISO YYYY-MM-DD format
-  rentalEnd       String   // ISO YYYY-MM-DD format
-  deliveryMethod  String   // "pickup" | "delivery"
-  status          String   @default("booked") // "booked" | "active" | "returned" | "overdue"
-  depositAmount   Float
-  depositStatus   String   @default("held") // "held" | "refunded" | "partially-deducted"
-  lateFeeCharged  Float    @default(0)
-  damageCharge    Float    @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  invoiceAddress  String?
+  deliveryAddress String?
+  rentalStart     String // YYYY-MM-DD format
+  rentalEnd       String // YYYY-MM-DD format
+  deliveryMethod  String      @default("delivery") // "pickup" | "delivery"
+  priceList       String      @default("Standard")
+  status          String      @default("QUOTATION")
+  invoiceStatus   String      @default("NOTHING_TO_INVOICE")
+  untaxedAmount   Float       @default(0)
+  taxAmount       Float       @default(0)
+  totalAmount     Float       @default(0)
+  depositAmount   Float       @default(0)
+  depositStatus   String      @default("held") // "held" | "refunded" | "partially-deducted"
+  lateFeeCharged  Float       @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  orderLines      OrderLine[]
+  invoices        Invoice[]
 }
 
-// ─── Late Fee Configuration ──────────────────────────────────────────────────
+// ─── Order Line Model ────────────────────────────────────────────────────────
+model OrderLine {
+  id            String      @id @default(uuid())
+  rentalOrderId Int
+  rentalOrder   RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
+  productId     Int
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity      Int         @default(1)
+  unitPrice     Float
+  taxPercent    Float       @default(10)
+  amount        Float
+}
+
+// ─── Invoice Model ───────────────────────────────────────────────────────────
+// Status: "DRAFT" | "POSTED" | "PAID"
+model Invoice {
+  id            String      @id @default(uuid())
+  invoiceNumber String      @unique // e.g., INV/2026/0001
+  rentalOrderId Int
+  rentalOrder   RentalOrder @relation(fields: [rentalOrderId], references: [id])
+  invoiceDate   String
+  status        String      @default("DRAFT")
+  untaxedAmount Float       @default(0)
+  taxAmount     Float       @default(0)
+  totalAmount   Float       @default(0)
+  amountPaid    Float       @default(0)
+  createdAt     DateTime    @default(now())
+}
+
+// ─── Late Fee & Settings Configuration ───────────────────────────────────────
+model PickupReturnSetting {
+  id               String   @id @default("default")
+  dailyRate        Float    @default(15)
+  hourlyRate       Float    @default(2.5)
+  gracePeriodDays  Int      @default(1)
+  enableVendors    Boolean  @default(true)
+  enableAttributes Boolean  @default(true)
+  enablePriceLists Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+}
+
+// Backwards compatibility alias for existing query logic
 model LateFeeConfig {
   id              String   @id @default("default")
   dailyRate       Float    @default(15)
