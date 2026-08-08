@@ -11,18 +11,22 @@ function LoginContent() {
   const emailParam = searchParams.get("email");
   const registeredParam = searchParams.get("registered");
 
+  // "customer" or "admin" — determines redirect after login
+  const [roleTab, setRoleTab] = useState<"customer" | "admin">("customer");
+
   const [email, setEmail] = useState(emailParam || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const performLogin = async (loginEmail: string, loginPass: string, overrideTarget?: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
     setLoading(true);
 
-    const cleanEmail = loginEmail.trim().toLowerCase();
-    const cleanPass = loginPass.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = password.trim();
 
     try {
       const res = await signIn("credentials", {
@@ -33,112 +37,112 @@ function LoginContent() {
 
       if (res?.error) {
         setLoading(false);
-        setError("Invalid User ID or Password.");
+        setError("Invalid email or password. Please try again.");
         return;
       }
 
-      // Fetch active session to check role
+      // Fetch session to get actual role from DB
       const sessionRes = await fetch("/api/auth/session");
       const session = await sessionRes.json();
-
       setLoading(false);
 
-      const userRole = session?.user?.role || (cleanEmail === "admin@locare.com" ? "admin" : "customer");
-      const target = redirectTarget || overrideTarget || (userRole === "admin" ? "/admin" : "/customer");
+      const userRole = session?.user?.role;
+      let target: string;
+
+      if (redirectTarget) {
+        target = redirectTarget;
+      } else if (userRole === "admin" || userRole === "vendor") {
+        target = "/admin";
+      } else if (userRole === "customer") {
+        target = "/customer";
+      } else {
+        // Fallback to whatever tab they selected
+        target = roleTab === "admin" ? "/admin" : "/customer";
+      }
 
       window.location.href = target;
     } catch {
       setLoading(false);
-      setError("An unexpected error occurred during login.");
+      setError("An unexpected error occurred. Please try again.");
     }
-  };
-
-  const handleCustomSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await performLogin(email, password);
-  };
-
-  const handleRoleSelect = (roleEmail: string, rolePass: string) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-    setError("");
   };
 
   return (
     <div className="auth-shell">
-      <div className="auth-card animate-fade-in" style={{ maxWidth: 480 }}>
+      <div className="auth-card animate-fade-in" style={{ maxWidth: 460 }}>
         <div className="auth-header">
           <div className="auth-logo">Locare</div>
           <h2 className="auth-title">Log In to Your Account</h2>
-          <p className="auth-subtitle">Sign in to access Locare ERP & Customer Catalog</p>
+          <p className="auth-subtitle">Sign in to access Locare ERP &amp; Customer Catalog</p>
         </div>
 
         {registeredParam && (
           <div className="auth-success-badge" style={{ marginBottom: 16 }}>
-            ✓ Account created successfully! Enter your password to log in.
+            ✓ Account created! Please log in with your credentials.
           </div>
         )}
 
         {error && <div className="auth-error-badge">{error}</div>}
 
-        {/* Role Quick Selection Preset Buttons */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 8, textTransform: "uppercase" }}>
-            PRE-FILL DEMO ACCOUNT CREDENTIALS:
+        {/* Role Tab Selector */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{
+            fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700,
+            display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em"
+          }}>
+            I am logging in as:
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <button
               type="button"
-              className={`btn btn-sm ${email === "garimaa.roy0401@gmail.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
-              onClick={() => handleRoleSelect("garimaa.roy0401@gmail.com", "Garima@0401")}
-            >
-              👩 Garima
-            </button>
-
-            <button
-              type="button"
-              className={`btn btn-sm ${email === "customer@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
-              onClick={() => handleRoleSelect("customer@locare.com", "customer123")}
+              onClick={() => setRoleTab("customer")}
+              style={{
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: roleTab === "customer" ? "2px solid var(--primary)" : "2px solid var(--border)",
+                background: roleTab === "customer" ? "var(--primary)" : "transparent",
+                color: roleTab === "customer" ? "#fff" : "var(--text-muted)",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
             >
               👤 Customer
             </button>
-
             <button
               type="button"
-              className={`btn btn-sm ${email === "vendor@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
-              onClick={() => handleRoleSelect("vendor@locare.com", "vendor123")}
+              onClick={() => setRoleTab("admin")}
+              style={{
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: roleTab === "admin" ? "2px solid var(--primary)" : "2px solid var(--border)",
+                background: roleTab === "admin" ? "var(--primary)" : "transparent",
+                color: roleTab === "admin" ? "#fff" : "var(--text-muted)",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
             >
-              🏢 Vendor
-            </button>
-
-            <button
-              type="button"
-              className={`btn btn-sm ${email === "admin@locare.com" ? "btn-primary" : "btn-ghost"}`}
-              style={{ fontWeight: 700, fontSize: "0.75rem", padding: "4px 6px" }}
-              onClick={() => handleRoleSelect("admin@locare.com", "admin123")}
-            >
-              🛡️ Admin
+              🛡️ Admin / Vendor
             </button>
           </div>
         </div>
 
-        <div style={{ display: "flex", flex: 1, height: 1, background: "var(--border)", margin: "16px 0" }} />
-
-        <form onSubmit={handleCustomSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
             <label className="form-label" htmlFor="login-email">
-              Login ID (Email)
+              Email Address
             </label>
             <input
               id="login-email"
               type="email"
               className="form-input"
-              placeholder="customer@locare.com"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
             />
           </div>
@@ -153,9 +157,10 @@ function LoginContent() {
                 type={showPassword ? "text" : "password"}
                 className="form-input"
                 style={{ paddingRight: "85px" }}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
               />
               <button
@@ -194,7 +199,7 @@ function LoginContent() {
           </button>
 
           <div className="auth-footer-links">
-            <span>Do not have an account? </span>
+            <span>Don&apos;t have an account? </span>
             <Link href="/auth/signup" className="auth-link-bold">
               Register Here
             </Link>
@@ -212,7 +217,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="auth-shell"><p>Loading Login...</p></div>}>
+    <Suspense fallback={<div className="auth-shell"><p>Loading...</p></div>}>
       <LoginContent />
     </Suspense>
   );

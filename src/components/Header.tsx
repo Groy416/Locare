@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -51,7 +51,22 @@ export default function Header() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [wishlistCount] = useState(2);
+
+  const getWishlistCount = () => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const stored = localStorage.getItem("locare_wishlist");
+      return stored ? (JSON.parse(stored) as number[]).length : 0;
+    } catch { return 0; }
+  };
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  useEffect(() => {
+    setWishlistCount(getWishlistCount());
+    const onUpdate = () => setWishlistCount(getWishlistCount());
+    window.addEventListener("wishlist-updated", onUpdate);
+    return () => window.removeEventListener("wishlist-updated", onUpdate);
+  }, []);
 
   const activeRole = (session?.user as { role?: string })?.role || role;
   const navItems = activeRole === "admin" || activeRole === "vendor" ? adminNav : customerNav;

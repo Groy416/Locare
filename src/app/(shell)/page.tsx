@@ -259,7 +259,7 @@ export default function LandingPage() {
           {/* Title */}
           <h1 className="lp-hero__title" style={{ transitionDelay: "250ms" }}>
             Rent Anything.<br />
-            <span className="lp-gradient-text px-gradient">Manage Everything with Locare.</span>
+            <span className="lp-gradient-text">Manage Everything with Locare.</span>
           </h1>
 
           {/* Subtitle */}

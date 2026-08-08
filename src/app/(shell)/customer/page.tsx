@@ -54,7 +54,15 @@ function CatalogContent() {
   const [selectedDuration, setSelectedDuration] = useState("all");
   const [maxPrice, setMaxPrice] = useState(10000);
   const [currentPage, setCurrentPage] = useState(1);
-  const [wishlistSet, setWishlistSet] = useState<Set<number>>(new Set());
+  const [wishlistSet, setWishlistSet] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set<number>();
+    try {
+      const stored = localStorage.getItem("locare_wishlist");
+      return stored ? new Set<number>(JSON.parse(stored) as number[]) : new Set<number>();
+    } catch {
+      return new Set<number>();
+    }
+  });
 
   const pageSize = 9;
 
@@ -202,6 +210,12 @@ function CatalogContent() {
       const next = new Set(prev);
       if (next.has(productId)) next.delete(productId);
       else next.add(productId);
+      // Persist to localStorage
+      try {
+        localStorage.setItem("locare_wishlist", JSON.stringify(Array.from(next)));
+        // Notify header badge
+        window.dispatchEvent(new Event("wishlist-updated"));
+      } catch {}
       return next;
     });
   };
