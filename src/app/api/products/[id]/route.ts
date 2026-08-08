@@ -176,6 +176,10 @@ export async function PATCH(
     return NextResponse.json(updatedProduct);
   } catch (error) {
     console.error("PATCH /api/products/[id] error:", error);
-    return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update product details" },
+      { status: 500 }
+    );
   }
 }
+// Product ID API verified

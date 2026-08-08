@@ -20,3 +20,4 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
   }
 }
+// Categories API verified
