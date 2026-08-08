@@ -18,7 +18,6 @@ export default function QuotationTemplatesPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchTemplates = () => {
-    setLoading(true);
     fetch("/api/quotation-templates")
       .then((res) => res.json())
       .then((data) => {

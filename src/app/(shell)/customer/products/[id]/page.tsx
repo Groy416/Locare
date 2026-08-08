@@ -20,9 +20,9 @@ interface DBVariant {
   attributeValues: ResolvedAttributeValue[];
 }
 
-interface DBProduct extends Product {
+interface DBProduct extends Omit<Product, "variants"> {
   images?: { id: string; url: string }[];
-  variants?: DBVariant[] | any;
+  variants?: DBVariant[];
   colors?: string[];
 }
 
@@ -57,7 +57,6 @@ export default function ProductDetailPage() {
 
   // Fetch product from API
   useEffect(() => {
-    setLoading(true);
     fetch(`/api/products/${productId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -68,12 +67,12 @@ export default function ProductDetailPage() {
         } else {
           // Fallback to in-memory data
           const found = fallbackProducts.find((p) => p.id === productId);
-          if (found) setDbProduct(found);
+          if (found) setDbProduct(found as unknown as DBProduct);
         }
       })
       .catch(() => {
         const found = fallbackProducts.find((p) => p.id === productId);
-        if (found) setDbProduct(found);
+        if (found) setDbProduct(found as unknown as DBProduct);
       })
       .finally(() => setLoading(false));
   }, [productId]);
@@ -171,7 +170,7 @@ export default function ProductDetailPage() {
       product: {
         ...product,
         price: activePrice,
-      },
+      } as unknown as Product,
       quantity,
       rentalStart,
       rentalEnd,
@@ -190,7 +189,7 @@ export default function ProductDetailPage() {
   };
 
   const isOutOfStock = activeStock === 0;
-  const mainImgSrc = selectedImage || (product as any).imageUrl || product.image;
+  const mainImgSrc = selectedImage || (product as { imageUrl?: string; image?: string }).imageUrl || product.image;
 
   return (
     <div className="page-shell animate-fade-in">

@@ -18,8 +18,8 @@ export default function NewRentalOrderPage() {
   const [customerName, setCustomerName] = useState("");
   const [invoiceAddress, setInvoiceAddress] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [rentalStart, setRentalStart] = useState(new Date().toISOString().split("T")[0]);
-  const [rentalEnd, setRentalEnd] = useState(
+  const [rentalStart, setRentalStart] = useState(() => new Date().toISOString().split("T")[0]);
+  const [rentalEnd, setRentalEnd] = useState(() =>
     new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0]
   );
   const [priceList, setPriceList] = useState("Standard");

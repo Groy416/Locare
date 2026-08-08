@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import Link from "next/link";
 
 interface OrderLine {
@@ -43,8 +43,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [order, setOrder] = useState<RentalOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrder = () => {
-    setLoading(true);
+  const fetchOrder = useCallback(() => {
     fetch(`/api/orders/${id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -52,11 +51,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       })
       .catch((err) => console.error("Error fetching order:", err))
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchOrder();
-  }, [id]);
+  }, [fetchOrder]);
 
   const handleUpdateStatus = async (targetStatus: string) => {
     try {

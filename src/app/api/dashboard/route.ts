@@ -7,7 +7,7 @@ import { products as seedProducts, rentals as seedRentals } from "@/lib/data";
 export async function GET() {
   try {
     let dbProducts = await prisma.product.findMany();
-    let dbOrders = await prisma.rentalOrder.findMany({
+    const dbOrders = await prisma.rentalOrder.findMany({
       include: {
         orderLines: {
           include: { product: true },

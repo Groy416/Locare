@@ -86,10 +86,11 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true, message: "Product deleted successfully" });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("DELETE /api/products/[id] error:", error);
+    const err = error as { code?: string; message?: string };
     // Foreign key constraint violation error code in Prisma is P2003
-    if (error.code === "P2003" || (error.message && error.message.includes("Foreign key constraint"))) {
+    if (err.code === "P2003" || (err.message && err.message.includes("Foreign key constraint"))) {
       return NextResponse.json(
         { error: "Cannot delete a rented item until item is returned" },
         { status: 409 }

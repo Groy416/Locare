@@ -11,8 +11,6 @@ import {
   AlertCircle,
   Sparkles,
   DollarSign,
-  ShieldAlert,
-  Layers,
   Image as ImageIcon,
 } from "lucide-react";
 
@@ -91,9 +89,10 @@ export default function NewProductPage() {
       setUploadedImageUrl(data.url);
       setUploadingImage(false);
       return data.url;
-    } catch (err: any) {
+    } catch (err: unknown) {
       setUploadingImage(false);
-      setErrorMessage(err.message || "Failed to upload image");
+      const errorObj = err as { message?: string };
+      setErrorMessage(errorObj.message || "Failed to upload image");
       return null;
     }
   };
@@ -138,9 +137,10 @@ export default function NewProductPage() {
           router.push("/admin/products");
         }, 1200);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSubmitting(false);
-      setErrorMessage(err.message || "An unexpected error occurred");
+      const errorObj = err as { message?: string };
+      setErrorMessage(errorObj.message || "An unexpected error occurred");
     }
   };
 
@@ -280,7 +280,7 @@ export default function NewProductPage() {
                 <select
                   className="w-full bg-slate-950 text-sm text-slate-100 rounded-xl px-4 py-2.5 border border-slate-800 focus:outline-none focus:border-lime-500/80 transition-all"
                   value={rentalUnit}
-                  onChange={(e) => setRentalUnit(e.target.value as any)}
+                  onChange={(e) => setRentalUnit(e.target.value as "hour" | "day" | "week" | "month")}
                 >
                   <option value="hour">per Hour</option>
                   <option value="day">per Day</option>

@@ -1,39 +1,31 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Sparkles,
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  Calendar,
-  Clock,
-  Truck,
-  FileText,
-  BarChart3,
-  Boxes,
-  CheckCircle2,
-  Lock,
   Layers,
-  ChevronRight,
 } from "lucide-react";
 
 /* ── Intersection Observer hook for scroll-triggered animations ── */
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
+function useInView(threshold = 0.15): [(node: HTMLElement | null) => void, boolean] {
   const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { threshold, rootMargin: "0px 0px -60px 0px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [threshold]);
-  return { ref, visible };
+  const setNode = useCallback(
+    (node: HTMLElement | null) => {
+      if (!node) return;
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) setVisible(true);
+        },
+        { threshold, rootMargin: "0px 0px -60px 0px" }
+      );
+      io.observe(node);
+    },
+    [threshold]
+  );
+
+  return [setNode, visible];
 }
 
 /* ── Animated counter that counts up on mount ── */
@@ -42,15 +34,14 @@ function AnimatedCounter({ target, suffix = "", prefix = "", duration = 2000 }: 
 }) {
   const [count, setCount] = useState(0);
   const [started, setStarted] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
+  const [spanEl, setSpanEl] = useState<HTMLSpanElement | null>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    if (!spanEl) return;
     const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStarted(true); }, { threshold: 0.5 });
-    io.observe(el);
+    io.observe(spanEl);
     return () => io.disconnect();
-  }, []);
+  }, [spanEl]);
 
   useEffect(() => {
     if (!started) return;
@@ -67,7 +58,7 @@ function AnimatedCounter({ target, suffix = "", prefix = "", duration = 2000 }: 
     return () => cancelAnimationFrame(frame);
   }, [started, target, duration]);
 
-  return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
+  return <span ref={setSpanEl}>{prefix}{count.toLocaleString()}{suffix}</span>;
 }
 
 
@@ -224,11 +215,11 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"customer" | "erp">("customer");
   const [tabAnimating, setTabAnimating] = useState(false);
 
-  const hero = useInView(0.1);
-  const features = useInView(0.1);
-  const catalog = useInView(0.1);
-  const steps = useInView(0.1);
-  const cta = useInView(0.1);
+  const [heroRef, isHeroVisible] = useInView(0.1);
+  const [featuresRef, isFeaturesVisible] = useInView(0.1);
+  const [catalogRef, isCatalogVisible] = useInView(0.1);
+  const [stepsRef, isStepsVisible] = useInView(0.1);
+  const [ctaRef, isCtaVisible] = useInView(0.1);
 
   const switchTab = useCallback((tab: "customer" | "erp") => {
     if (tab === activeTab) return;
@@ -248,8 +239,8 @@ export default function LandingPage() {
 
   return (
     <div className="landing-root px-landing">
-      {/* ───── HERO ───── */}
-      <section className="lp-hero" ref={hero.ref}>
+      {/* ───── HERO SECTION ───── */}
+      <section className="lp-hero" ref={heroRef}>
         <div className="lp-hero__bg">
           <div className="lp-hero__orb lp-hero__orb--1" />
           <div className="lp-hero__orb lp-hero__orb--2" />
@@ -258,7 +249,7 @@ export default function LandingPage() {
           <PixelParticles />
         </div>
 
-        <div className={`page-shell lp-hero__inner ${hero.visible ? "lp-reveal" : "lp-hidden"}`}>
+        <div className={`page-shell lp-hero__inner ${isHeroVisible ? "lp-reveal" : "lp-hidden"}`}>
           {/* Badge */}
           <div className="lp-badge px-badge flex items-center gap-2" style={{ transitionDelay: "100ms" }}>
             <Sparkles className="w-4 h-4 text-lime-400 animate-spin-slow" />
@@ -297,26 +288,38 @@ export default function LandingPage() {
             <div className="px-hero-sprite px-float-4"><PixelSprite type="gamepad" size={52} /></div>
             <div className="px-hero-sprite px-float-5"><PixelSprite type="camera" size={48} /></div>
           </div>
-
-          {/* Stats */}
-          <div className="lp-stats px-stats" style={{ transitionDelay: "800ms" }}>
-            <div className="lp-stat">
-              <div className="lp-stat__value"><AnimatedCounter target={2400000} prefix="$" suffix="+" /></div>
-              <div className="lp-stat__label">Deposits Managed</div>
-            </div>
-            <div className="lp-stat__divider px-divider" />
-            <div className="lp-stat">
-              <div className="lp-stat__value"><AnimatedCounter target={18500} suffix="+" /></div>
-              <div className="lp-stat__label">Items Rented</div>
-            </div>
-            <div className="lp-stat__divider px-divider" />
-            <div className="lp-stat">
-              <div className="lp-stat__value"><AnimatedCounter target={99} suffix=".8%" /></div>
-              <div className="lp-stat__label">On-Time Returns</div>
-            </div>
-          </div>
         </div>
       </section>
+
+      {/* ───── STATS BANNER ───── */}
+      <div className="lp-stats-bar px-stats-bar">
+        <div className="page-shell lp-stats-bar__inner">
+          <div className="lp-stat px-stat">
+            <span className="lp-stat__num px-stat-num">
+              <AnimatedCounter target={99.4} suffix="%" />
+            </span>
+            <span className="lp-stat__label">On-Time Returns</span>
+          </div>
+          <div className="lp-stat px-stat">
+            <span className="lp-stat__num px-stat-num">
+              <AnimatedCounter target={100} suffix="%" />
+            </span>
+            <span className="lp-stat__label">Automated Escrow</span>
+          </div>
+          <div className="lp-stat px-stat">
+            <span className="lp-stat__num px-stat-num">
+              <AnimatedCounter target={24} suffix="/7" />
+            </span>
+            <span className="lp-stat__label">Self-Service Booking</span>
+          </div>
+          <div className="lp-stat px-stat">
+            <span className="lp-stat__num px-stat-num">
+              <AnimatedCounter target={0} suffix="ms" prefix="<" />
+            </span>
+            <span className="lp-stat__label">Latency Catalog Sync</span>
+          </div>
+        </div>
+      </div>
 
       {/* ───── PRODUCT MARQUEE ───── */}
       <div className="lp-marquee-wrap px-marquee-wrap">
@@ -334,8 +337,8 @@ export default function LandingPage() {
       </div>
 
       {/* ───── FEATURES BENTO ───── */}
-      <section className="lp-section" ref={features.ref}>
-        <div className={`page-shell ${features.visible ? "lp-reveal" : "lp-hidden"}`}>
+      <section className="lp-section" ref={featuresRef}>
+        <div className={`page-shell ${isFeaturesVisible ? "lp-reveal" : "lp-hidden"}`}>
           <div className="lp-section__head">
             <span className="lp-eyebrow px-eyebrow">▸ BUILT FOR SCALE</span>
             <h2 className="lp-section__title">Everything You Need to Rent & Manage</h2>
@@ -424,8 +427,8 @@ export default function LandingPage() {
       </section>
 
       {/* ───── FEATURED CATALOG ───── */}
-      <section className="lp-section lp-section--alt" ref={catalog.ref}>
-        <div className={`page-shell ${catalog.visible ? "lp-reveal" : "lp-hidden"}`}>
+      <section className="lp-section lp-section--alt" ref={catalogRef}>
+        <div className={`page-shell ${isCatalogVisible ? "lp-reveal" : "lp-hidden"}`}>
           <div className="lp-section__head lp-section__head--row">
             <div>
               <span className="lp-eyebrow px-eyebrow">▸ FEATURED CATALOG</span>
@@ -461,8 +464,8 @@ export default function LandingPage() {
       </section>
 
       {/* ───── HOW IT WORKS ───── */}
-      <section className="lp-section" ref={steps.ref}>
-        <div className={`page-shell ${steps.visible ? "lp-reveal" : "lp-hidden"}`}>
+      <section className="lp-section" ref={stepsRef}>
+        <div className={`page-shell ${isStepsVisible ? "lp-reveal" : "lp-hidden"}`}>
           <div className="lp-section__head">
             <span className="lp-eyebrow px-eyebrow">▸ 3-STEP PROCESS</span>
             <h2 className="lp-section__title">How Locare Works</h2>
@@ -489,8 +492,8 @@ export default function LandingPage() {
       </section>
 
       {/* ───── CTA ───── */}
-      <section className="lp-section lp-section--cta" ref={cta.ref}>
-        <div className={`page-shell ${cta.visible ? "lp-reveal" : "lp-hidden"}`}>
+      <section className="lp-section lp-section--cta" ref={ctaRef}>
+        <div className={`page-shell ${isCtaVisible ? "lp-reveal" : "lp-hidden"}`}>
           <div className="lp-cta-card px-cta">
             <div className="lp-cta-card__glow" />
             <div className="px-cta-sprites">

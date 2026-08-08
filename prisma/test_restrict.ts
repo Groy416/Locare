@@ -90,8 +90,9 @@ async function runTests() {
 
   try {
     await prisma.product.delete({ where: { id: testProd.id } });
-  } catch (error: any) {
-    if (error.code === "P2003" || error.message?.includes("Foreign key constraint")) {
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    if (err.code === "P2003" || err.message?.includes("Foreign key constraint")) {
       deleteAttemptFailedAsExpected = true;
       responseStatusCode = 409;
       responseErrorMessage = "Cannot delete a rented item until item is returned";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
 interface OrderLine {
@@ -34,8 +34,7 @@ export default function AdminOrderManagementPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = () => {
-    setLoading(true);
+  const fetchOrders = useCallback(() => {
     const query = new URLSearchParams();
     if (filter !== "all") query.set("filter", filter);
     if (search) query.set("search", search);
@@ -48,11 +47,11 @@ export default function AdminOrderManagementPage() {
       })
       .catch((err) => console.error("Error fetching orders:", err))
       .finally(() => setLoading(false));
-  };
+  }, [filter, search]);
 
   useEffect(() => {
     fetchOrders();
-  }, [filter, search]);
+  }, [fetchOrders]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
