@@ -58,15 +58,15 @@ function AnimatedCounter({ target, suffix = "", prefix = "", duration = 2000 }: 
 function PixelSprite({ type, size = 48 }: { type: string; size?: number }) {
   const sprites: Record<string, { bg: string; pixels: string }> = {
     sofa: {
-      bg: "#6366f1",
+      bg: "#5B8731",
       pixels: `
-        <rect x="4" y="14" width="24" height="10" rx="2" fill="#818cf8"/>
-        <rect x="6" y="10" width="20" height="6" rx="1" fill="#a5b4fc"/>
-        <rect x="2" y="14" width="4" height="12" rx="1" fill="#6366f1"/>
-        <rect x="26" y="14" width="4" height="12" rx="1" fill="#6366f1"/>
-        <rect x="6" y="24" width="3" height="4" rx="1" fill="#4f46e5"/>
-        <rect x="23" y="24" width="3" height="4" rx="1" fill="#4f46e5"/>
-        <rect x="14" y="12" width="4" height="2" rx="0.5" fill="#c7d2fe" opacity="0.5"/>
+        <rect x="4" y="14" width="24" height="10" rx="2" fill="#7CCC19"/>
+        <rect x="6" y="10" width="20" height="6" rx="1" fill="#A8E66A"/>
+        <rect x="2" y="14" width="4" height="12" rx="1" fill="#5B8731"/>
+        <rect x="26" y="14" width="4" height="12" rx="1" fill="#5B8731"/>
+        <rect x="6" y="24" width="3" height="4" rx="1" fill="#3D6B1E"/>
+        <rect x="23" y="24" width="3" height="4" rx="1" fill="#3D6B1E"/>
+        <rect x="14" y="12" width="4" height="2" rx="0.5" fill="#E8F5D6" opacity="0.6"/>
       `
     },
     tv: {
@@ -81,14 +81,14 @@ function PixelSprite({ type, size = 48 }: { type: string; size?: number }) {
       `
     },
     laptop: {
-      bg: "#8b5cf6",
+      bg: "#38bdf8",
       pixels: `
-        <rect x="6" y="8" width="20" height="14" rx="2" fill="#7c3aed"/>
-        <rect x="8" y="10" width="16" height="10" rx="1" fill="#a78bfa"/>
-        <rect x="10" y="12" width="5" height="3" fill="#c4b5fd" opacity="0.6"/>
-        <rect x="10" y="16" width="12" height="1" fill="#ddd6fe" opacity="0.4"/>
-        <rect x="4" y="22" width="24" height="3" rx="1" fill="#6d28d9"/>
-        <rect x="13" y="23" width="6" height="1" rx="0.5" fill="#8b5cf6"/>
+        <rect x="6" y="8" width="20" height="14" rx="2" fill="#0284c7"/>
+        <rect x="8" y="10" width="16" height="10" rx="1" fill="#38bdf8"/>
+        <rect x="10" y="12" width="5" height="3" fill="#bae6fd" opacity="0.7"/>
+        <rect x="10" y="16" width="12" height="1" fill="#e0f2fe" opacity="0.5"/>
+        <rect x="4" y="22" width="24" height="3" rx="1" fill="#0369a1"/>
+        <rect x="13" y="23" width="6" height="1" rx="0.5" fill="#38bdf8"/>
       `
     },
     gamepad: {
@@ -223,9 +223,9 @@ export default function LandingPage() {
   }, [activeTab]);
 
   const featuredItems = [
-    { id: "prod-001", name: "3-Seater Comfort Sofa", sprite: "sofa", brand: "Ashley", price: "$45", unit: "month", deposit: "$150", color: "#6366f1" },
+    { id: "prod-001", name: "3-Seater Comfort Sofa", sprite: "sofa", brand: "Ashley", price: "$45", unit: "month", deposit: "$150", color: "#5B8731" },
     { id: "prod-004", name: "Smart 4K Ultra HD LED TV", sprite: "tv", brand: "Sony", price: "$25", unit: "day", deposit: "$300", color: "#06b6d4" },
-    { id: "prod-006", name: "Pro Laptop 15.6\" SSD", sprite: "laptop", brand: "Dell", price: "$20", unit: "day", deposit: "$250", color: "#8b5cf6" },
+    { id: "prod-006", name: "Pro Laptop 15.6\" SSD", sprite: "laptop", brand: "Dell", price: "$20", unit: "day", deposit: "$250", color: "#38bdf8" },
     { id: "prod-007", name: "PlayStation 5 Bundle", sprite: "gamepad", brand: "Sony", price: "$5", unit: "hour", deposit: "$400", color: "#ec4899" },
   ];
 

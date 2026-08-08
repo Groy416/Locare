@@ -65,26 +65,26 @@ const categoryStyles: Record<string, CategoryStyle> = {
 
   // Electronics & Smart TV
   Electronics: {
-    gradient: "linear-gradient(135deg, #1e1b4b, #0f172a)",
-    accent: "#818cf8",
+    gradient: "linear-gradient(135deg, #14532d, #0f172a)",
+    accent: "#7CCC19",
     icon: (
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#818cf8" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#7CCC19" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         {/* Smart TV Display */}
-        <rect x="8" y="14" width="48" height="30" rx="3" fill="rgba(129, 140, 248, 0.1)" />
+        <rect x="8" y="14" width="48" height="30" rx="3" fill="rgba(124, 204, 25, 0.1)" />
         <path d="M24 44l-4 8M40 44l4 8M18 52h28" />
-        <polygon points="28 24 38 29 28 34 28 24" fill="#818cf8" />
+        <polygon points="28 24 38 29 28 34 28 24" fill="#7CCC19" />
       </svg>
     ),
   },
 
   // Computers & Workstations
   Computers: {
-    gradient: "linear-gradient(135deg, #18181b, #09090b)",
-    accent: "#a1a1aa",
+    gradient: "linear-gradient(135deg, #0c4a6e, #082f49)",
+    accent: "#38bdf8",
     icon: (
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#a1a1aa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#38bdf8" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         {/* High-Performance PC & Workstation */}
-        <rect x="12" y="16" width="40" height="24" rx="2" fill="rgba(161, 161, 170, 0.1)" />
+        <rect x="12" y="16" width="40" height="24" rx="2" fill="rgba(56, 189, 248, 0.1)" />
         <path d="M20 40v6M44 40v6M16 46h32" />
         <rect x="22" y="20" width="20" height="16" rx="1" strokeDasharray="2 2" />
       </svg>
@@ -93,15 +93,15 @@ const categoryStyles: Record<string, CategoryStyle> = {
 
   // Gaming Equipment
   Gaming: {
-    gradient: "linear-gradient(135deg, #2e1065, #1e1b4b)",
-    accent: "#c084fc",
+    gradient: "linear-gradient(135deg, #15803d, #052e16)",
+    accent: "#5B8731",
     icon: (
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#c084fc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#7CCC19" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         {/* Next-Gen Gaming Console & Controller */}
-        <path d="M16 26c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v12c0 4.4-3.6 8-8 8l-4-4H28l-4 4c-4.4 0-8-3.6-8-8V26z" fill="rgba(192, 132, 252, 0.1)" />
+        <path d="M16 26c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v12c0 4.4-3.6 8-8 8l-4-4H28l-4 4c-4.4 0-8-3.6-8-8V26z" fill="rgba(124, 204, 25, 0.1)" />
         <path d="M24 28v6M21 31h6" />
-        <circle cx="40" cy="29" r="1.5" fill="#c084fc" />
-        <circle cx="44" cy="33" r="1.5" fill="#c084fc" />
+        <circle cx="40" cy="29" r="1.5" fill="#7CCC19" />
+        <circle cx="44" cy="33" r="1.5" fill="#7CCC19" />
       </svg>
     ),
   },

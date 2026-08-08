@@ -61,7 +61,7 @@ function LoginContent() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
           <button
             className="btn btn-primary btn-block btn-lg"
-            style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)", fontWeight: 700 }}
+            style={{ background: "linear-gradient(135deg, #5B8731, #7CCC19)", fontWeight: 700 }}
             onClick={() => handleQuickSignIn("customer@locare.com", "customer123", redirectTarget)}
             disabled={loading}
           >

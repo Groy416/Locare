@@ -69,22 +69,10 @@ export default function Header() {
       <div className="header-inner">
         {/* Logo */}
         <Link href={activeRole === "customer" ? "/customer" : "/admin"} className="logo">
-          <div className="logo-badge">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+          <div className="logo-badge px-logo-badge" style={{ background: "linear-gradient(135deg, #5B8731, #7CCC19)", border: "2px solid #7CCC19" }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 900, fontSize: "1.1rem", color: "#ffffff" }}>🟩</span>
           </div>
-          <span className="logo-text">Your Logo</span>
+          <span className="logo-text" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif", fontWeight: 900, letterSpacing: "-0.02em" }}>Locare</span>
         </Link>
 
         {/* Navigation Links */}
