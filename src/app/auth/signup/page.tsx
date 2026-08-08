@@ -13,6 +13,7 @@ export default function CustomerSignUpPage() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -115,31 +116,73 @@ export default function CustomerSignUpPage() {
             <label className="form-label" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="form-input"
-              placeholder="6-12 chars, 1 upper, 1 lower, 1 special (@, #, $)"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                className="form-input"
+                style={{ paddingRight: "85px" }}
+                placeholder="6-12 chars, 1 upper, 1 lower, 1 special (@, #, $)"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "var(--text)",
+                  cursor: "pointer",
+                }}
+              >
+                {showPassword ? "🙈 Hide" : "👁️ Show"}
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="confirmPassword">
               Confirm Password
             </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              className="form-input"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                className="form-input"
+                style={{ paddingRight: "85px" }}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "var(--text)",
+                  cursor: "pointer",
+                }}
+              >
+                {showPassword ? "🙈 Hide" : "👁️ Show"}
+              </button>
+            </div>
           </div>
 
           <div className="password-rules-box">
