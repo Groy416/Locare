@@ -145,6 +145,7 @@ export async function PATCH(
       where: { id: numId },
       data: {
         ...(body.inStock !== undefined ? { inStock: Math.max(0, parseInt(String(body.inStock), 10)) } : {}),
+        ...(body.status ? { status: String(body.status).toUpperCase() } : {}),
         ...(body.name ? { name: body.name } : {}),
         ...(body.price !== undefined ? { price: parseFloat(body.price) } : {}),
         ...(body.securityDeposit !== undefined ? { securityDeposit: parseFloat(body.securityDeposit) } : {}),

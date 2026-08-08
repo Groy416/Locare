@@ -57,6 +57,19 @@ export async function POST(
       },
     });
 
+    // Restore product stock and mark product status AVAILABLE
+    for (const line of order.orderLines) {
+      if (line.productId) {
+        await prisma.product.update({
+          where: { id: line.productId },
+          data: {
+            inStock: { increment: line.quantity },
+            status: "AVAILABLE",
+          },
+        }).catch((err) => console.error("Failed to restore stock on return:", err));
+      }
+    }
+
     return NextResponse.json({
       rental: updatedOrder,
       lateFee,
