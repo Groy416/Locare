@@ -81,17 +81,28 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid product ID format" }, { status: 400 });
     }
 
-    // Check if product is linked to any active rental order lines
+    // Check if product is linked to any active (unreturned) rental orders
     const activeRentalLines = await prisma.orderLine.count({
-      where: { productId: numId },
+      where: {
+        productId: numId,
+        rentalOrder: {
+          status: { in: ["QUOTATION", "QUOTATION_SENT", "CONFIRMED", "PICKED_UP", "OVERDUE", "active"] },
+        },
+      },
     });
 
     if (activeRentalLines > 0) {
       return NextResponse.json(
-        { error: "Cannot delete product because it is currently linked to an active rental order." },
+        { error: "Cannot delete product because it has an active, unreturned rental." },
         { status: 409 }
       );
     }
+
+    // Product is unrented or all rentals have been returned/cancelled.
+    // Delete associated historical order lines (if any returned ones remain)
+    await prisma.orderLine.deleteMany({
+      where: { productId: numId },
+    }).catch(() => null);
 
     // Delete associated variants and product variant attribute values
     const variants = await prisma.productVariant.findMany({
@@ -114,7 +125,11 @@ export async function DELETE(
       where: { productId: numId },
     });
 
-    return NextResponse.json({ success: true, message: "Product deleted successfully" });
+    await prisma.product.delete({
+      where: { id: numId },
+    });
+
+    return NextResponse.json({ success: true, deletedId: numId });
   } catch (error: unknown) {
     console.error("DELETE /api/products/[id] error:", error);
     const err = error as { code?: string; message?: string };
