@@ -4,7 +4,7 @@ import React from "react";
 
 interface ProductIconProps {
   category: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -148,7 +148,8 @@ export default function ProductIcon({
 
   const styleConfig = categoryStyles[matchingKey];
 
-  const heightMap = {
+  const heightMap: Record<string, string> = {
+    xs: "56px",
     sm: "140px",
     md: "190px",
     lg: "280px",
@@ -210,7 +211,7 @@ export default function ProductIcon({
           position: "relative",
           zIndex: 1,
           filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
-          transform: size === "sm" ? "scale(0.85)" : size === "lg" ? "scale(1.3)" : "scale(1)",
+          transform: size === "xs" ? "scale(0.5)" : size === "sm" ? "scale(0.85)" : size === "lg" ? "scale(1.3)" : "scale(1)",
         }}
       >
         {styleConfig.icon}
