@@ -280,3 +280,115 @@ export function calculateDepositRefund(
   const totalDeductions = lateFee + damageCharge;
   return Math.max(0, rental.depositAmount - totalDeductions);
 }
+
+// ─── Orders Store ────────────────────────────────────────────────────────────
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  rentalStart: string;
+  rentalEnd: string;
+  rentalUnits: number;
+  rentalCost: number;
+  depositTotal: number;
+}
+
+export interface Order {
+  id: string; // e.g. "SO00001"
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  deliveryMethod: DeliveryMethod;
+  deliveryAddress?: string;
+  items: OrderItem[];
+  totalRentalCost: number;
+  totalDeposit: number;
+  grandTotal: number;
+  createdAt: string;
+}
+
+export const orders: Order[] = [];
+let orderCounter = 1;
+
+export function getOrder(id: string): Order | undefined {
+  return orders.find((o) => o.id === id);
+}
+
+export function createOrder(
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    deliveryAddress?: string;
+  },
+  deliveryMethod: DeliveryMethod,
+  cartItems: {
+    product: Product;
+    quantity: number;
+    rentalStart: string;
+    rentalEnd: string;
+    rentalUnits: number;
+    rentalCost: number;
+    depositTotal: number;
+  }[]
+): Order {
+  const id = `SO${String(orderCounter++).padStart(5, "0")}`;
+
+  const orderItems: OrderItem[] = cartItems.map((item) => ({
+    productId: item.product.id,
+    productName: item.product.name,
+    quantity: item.quantity,
+    rentalStart: item.rentalStart,
+    rentalEnd: item.rentalEnd,
+    rentalUnits: item.rentalUnits,
+    rentalCost: item.rentalCost,
+    depositTotal: item.depositTotal,
+  }));
+
+  const totalRentalCost = cartItems.reduce((sum, i) => sum + i.rentalCost, 0);
+  const totalDeposit = cartItems.reduce((sum, i) => sum + i.depositTotal, 0);
+  const grandTotal = totalRentalCost + totalDeposit;
+
+  const newOrder: Order = {
+    id,
+    customerName: customerDetails.name,
+    customerEmail: customerDetails.email,
+    customerPhone: customerDetails.phone,
+    deliveryMethod,
+    deliveryAddress: customerDetails.deliveryAddress,
+    items: orderItems,
+    totalRentalCost,
+    totalDeposit,
+    grandTotal,
+    createdAt: new Date().toISOString(),
+  };
+
+  orders.unshift(newOrder);
+
+  // Also create corresponding Rental records for admin tracking
+  cartItems.forEach((item, index) => {
+    const rentalRecord: Rental = {
+      id: `rent-${id.toLowerCase()}-${index + 1}`,
+      productId: item.product.id,
+      customerName: customerDetails.name,
+      rentalStart: item.rentalStart,
+      rentalEnd: item.rentalEnd,
+      deliveryMethod,
+      status: "booked",
+      depositAmount: item.depositTotal,
+      depositStatus: "held",
+      lateFeeCharged: 0,
+    };
+    rentals.unshift(rentalRecord);
+
+    // Update stock in memory
+    const p = getProduct(item.product.id);
+    if (p) {
+      p.inStock = Math.max(0, p.inStock - item.quantity);
+    }
+  });
+
+  return newOrder;
+}
+

@@ -25,6 +25,8 @@ interface CartContextValue {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  updateItemDates: (productId: string, start: string, end: string) => void;
   clearCart: () => void;
   totalRentalCost: number;
   totalDeposit: number;
@@ -82,6 +84,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
+  const updateQuantity = useCallback((productId: string, quantity: number) => {
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.product.id !== productId) return i;
+        const qty = Math.max(1, Math.min(i.product.inStock, quantity));
+        const rentalCost = i.product.price * i.rentalUnits * qty;
+        const depositTotal = i.product.securityDeposit * qty;
+        return { ...i, quantity: qty, rentalCost, depositTotal };
+      })
+    );
+  }, []);
+
+  const updateItemDates = useCallback(
+    (productId: string, start: string, end: string) => {
+      setItems((prev) =>
+        prev.map((i) => {
+          if (i.product.id !== productId) return i;
+          const units = calculateRentalUnits(start, end, i.product.rentalUnit);
+          const rentalCost = i.product.price * units * i.quantity;
+          return {
+            ...i,
+            rentalStart: start,
+            rentalEnd: end,
+            rentalUnits: units,
+            rentalCost,
+          };
+        })
+      );
+    },
+    []
+  );
+
   const clearCart = useCallback(() => {
     setItems([]);
   }, []);
@@ -89,7 +123,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalRentalCost = items.reduce((sum, i) => sum + i.rentalCost, 0);
   const totalDeposit = items.reduce((sum, i) => sum + i.depositTotal, 0);
   const grandTotal = totalRentalCost + totalDeposit;
-  const itemCount = items.length;
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
     <CartContext.Provider
@@ -97,6 +131,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items,
         addItem,
         removeItem,
+        updateQuantity,
+        updateItemDates,
         clearCart,
         totalRentalCost,
         totalDeposit,

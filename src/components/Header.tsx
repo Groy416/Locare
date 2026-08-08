@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRole, type Role } from "@/lib/role-context";
+import { useCart } from "@/lib/cart-context";
 
 // ─── Nav items per role ──────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ const adminNav = [
 
 export default function Header() {
   const { role, setRole } = useRole();
+  const { itemCount } = useCart();
   const pathname = usePathname();
   const navItems = role === "admin" ? adminNav : customerNav;
 
@@ -59,6 +61,20 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+
+          {role === "customer" && (
+            <Link
+              href="/customer/cart"
+              className={`nav-link nav-cart-link ${
+                pathname === "/customer/cart" ? "nav-link-active" : ""
+              }`}
+            >
+              🛒 Cart
+              {itemCount > 0 && (
+                <span className="nav-cart-badge">{itemCount}</span>
+              )}
+            </Link>
+          )}
         </nav>
 
         {/* Role Switcher */}
