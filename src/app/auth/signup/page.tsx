@@ -44,8 +44,9 @@ export default function CustomerSignUpPage() {
       if (!res.ok) {
         setError(data.error || "Registration failed.");
       } else {
+        const registeredEmail = formData.email.toLowerCase().trim();
         setSuccess("Account created successfully! Redirecting to login...");
-        setTimeout(() => router.push("/auth/login"), 1500);
+        setTimeout(() => router.push(`/auth/login?email=${encodeURIComponent(registeredEmail)}&registered=true`), 1200);
       }
     } catch {
       setLoading(false);

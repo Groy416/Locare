@@ -8,8 +8,10 @@ import { useSearchParams } from "next/navigation";
 function LoginContent() {
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get("redirect");
+  const emailParam = searchParams.get("email");
+  const registeredParam = searchParams.get("registered");
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -64,6 +66,12 @@ function LoginContent() {
           <h2 className="auth-title">Log In to Your Account</h2>
           <p className="auth-subtitle">Sign in to access Locare ERP & Customer Catalog</p>
         </div>
+
+        {registeredParam && (
+          <div className="auth-success-badge" style={{ marginBottom: 16 }}>
+            ✓ Account created successfully! Enter your password to log in.
+          </div>
+        )}
 
         {error && <div className="auth-error-badge">{error}</div>}
 
