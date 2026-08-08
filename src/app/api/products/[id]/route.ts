@@ -114,10 +114,6 @@ export async function DELETE(
       where: { productId: numId },
     });
 
-    await prisma.product.delete({
-      where: { id: numId },
-    });
-
     return NextResponse.json({ success: true, message: "Product deleted successfully" });
   } catch (error: unknown) {
     console.error("DELETE /api/products/[id] error:", error);
@@ -129,5 +125,35 @@ export async function DELETE(
       );
     }
     return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const numId = parseInt(id, 10);
+    const body = await request.json();
+
+    if (isNaN(numId)) {
+      return NextResponse.json({ error: "Invalid product ID format" }, { status: 400 });
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: numId },
+      data: {
+        ...(body.inStock !== undefined ? { inStock: Math.max(0, parseInt(String(body.inStock), 10)) } : {}),
+        ...(body.name ? { name: body.name } : {}),
+        ...(body.price !== undefined ? { price: parseFloat(body.price) } : {}),
+        ...(body.securityDeposit !== undefined ? { securityDeposit: parseFloat(body.securityDeposit) } : {}),
+      },
+    });
+
+    return NextResponse.json(updatedProduct);
+  } catch (error) {
+    console.error("PATCH /api/products/[id] error:", error);
+    return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
   }
 }

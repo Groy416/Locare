@@ -91,6 +91,37 @@ export default function CheckoutPage() {
         ? `${address}, ${city}, ${zip}`
         : "Store Pickup: 100 Main Street, Warehouse B";
 
+    // Decrement database stock for each item in cart via API
+    items.forEach((item) => {
+      const numId = typeof item.product.id === "number" ? item.product.id : parseInt(String(item.product.id), 10);
+      if (!isNaN(numId)) {
+        const newStock = Math.max(0, (item.product.inStock || 0) - item.quantity);
+        fetch(`/api/products/${numId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inStock: newStock }),
+        }).catch((err) => console.error("Failed to decrement stock via API:", err));
+      }
+    });
+
+    // Create order via DB API
+    fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerName: name,
+        invoiceAddress: fullAddress,
+        deliveryAddress: fullAddress,
+        rentalStart: items[0]?.rentalStart || new Date().toISOString().split("T")[0],
+        rentalEnd: items[0]?.rentalEnd || new Date().toISOString().split("T")[0],
+        orderLines: items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          unitPrice: item.product.price,
+        })),
+      }),
+    }).catch((err) => console.error("Failed to save order to API:", err));
+
     setTimeout(() => {
       const order = createOrder(
         {
