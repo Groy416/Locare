@@ -2619,5 +2619,87 @@ body {
   cursor: pointer;
 }
 
+/* ─── Technical Card & Badge Overhaul (Human/Technical Design) ─────────────── */
+
+.technical-card {
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+  transition: all var(--transition-fast) !important;
+  overflow: hidden;
+}
+
+.technical-card:hover {
+  border-color: var(--primary-light) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.out-of-stock-tech-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(220, 38, 38, 0.92);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wishlist-tech-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  font-size: 1.1rem;
+  transition: all var(--transition-fast);
+}
+
+.wishlist-tech-btn:hover {
+  border-color: var(--primary) !important;
+  background: rgba(99, 102, 241, 0.3) !important;
+  transform: scale(1.08);
+}
+
+.product-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sku-mono {
+  font-family: monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.brand-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary-light);
+}
+
+
 
 

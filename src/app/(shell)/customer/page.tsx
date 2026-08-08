@@ -1,16 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { products, type Product } from "@/lib/data";
 import ProductIcon from "@/components/ProductIcon";
 
-export default function CustomerCatalogPage() {
+function CatalogContent() {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+
   const [selectedBrand, setSelectedBrand] = useState("all");
   const [selectedColor, setSelectedColor] = useState("all");
   const [selectedDuration, setSelectedDuration] = useState("all");
   const [maxPrice, setMaxPrice] = useState(10000);
   const [currentPage, setCurrentPage] = useState(1);
+  const [wishlistSet, setWishlistSet] = useState<Set<string>>(new Set(["prod-001", "prod-004"]));
+
+  const pageSize = 6;
 
   // Extract unique brands
   const brands = useMemo(() => {
@@ -20,30 +27,79 @@ export default function CustomerCatalogPage() {
   // Filter products
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      if (
+        initialSearch &&
+        !product.name.toLowerCase().includes(initialSearch.toLowerCase()) &&
+        !product.category.toLowerCase().includes(initialSearch.toLowerCase())
+      ) {
+        return false;
+      }
       if (selectedBrand !== "all" && product.brand !== selectedBrand) return false;
       if (product.price > maxPrice) return false;
       if (selectedDuration !== "all") {
         if (selectedDuration.includes("Month") && product.rentalUnit !== "month") return false;
         if (selectedDuration.includes("Year") && product.rentalUnit !== "month") return false;
+        if (selectedDuration.includes("Day") && product.rentalUnit !== "day") return false;
+      }
+      if (selectedColor !== "all") {
+        if (!product.colorSwatches) return false;
+        const colorHexMap: Record<string, string> = {
+          Blue: "#2563eb",
+          "Master Gold": "#f59e0b",
+          Teal: "#0d9488",
+          Charcoal: "#334155",
+          "Dark Wood": "#78350f",
+        };
+        const targetHex = colorHexMap[selectedColor];
+        if (targetHex && !product.colorSwatches.includes(targetHex)) return false;
       }
       return true;
     });
-  }, [selectedBrand, selectedDuration, maxPrice]);
+  }, [initialSearch, selectedBrand, selectedColor, selectedDuration, maxPrice]);
+
+  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage]);
+
+  const toggleWishlist = (e: React.MouseEvent, productId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlistSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="page-shell animate-fade-in">
       <div className="catalog-layout-grid">
-        {/* ─── Left Sidebar Filters (Matching Image 1 Wireframe) ─────────── */}
+        {/* ─── Left Sidebar Filters (Image 1 Wireframe) ─────────────────── */}
         <aside className="catalog-sidebar">
+          <div className="sidebar-header" style={{ marginBottom: 12 }}>
+            <h2 className="filter-title" style={{ fontSize: "0.85rem", color: "var(--primary-light)" }}>
+              Filter Specification
+            </h2>
+          </div>
+
           {/* Brand Filter */}
           <div className="filter-group">
-            <label className="filter-title">Brand</label>
+            <label className="filter-title">Brand Manufacturer</label>
             <select
               className="filter-select"
               value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
+              onChange={(e) => {
+                setSelectedBrand(e.target.value);
+                setCurrentPage(1);
+              }}
             >
-              <option value="all">All Brands</option>
+              <option value="all">All Manufacturers</option>
               {brands.map((b) => (
                 <option key={b} value={b}>
                   {b}
@@ -57,7 +113,7 @@ export default function CustomerCatalogPage() {
             <label className="filter-title">Color Swatches</label>
             <div className="color-swatches-grid">
               {[
-                { name: "All", hex: "transparent" },
+                { name: "all", hex: "transparent" },
                 { name: "Blue", hex: "#2563eb" },
                 { name: "Master Gold", hex: "#f59e0b" },
                 { name: "Teal", hex: "#0d9488" },
@@ -71,8 +127,11 @@ export default function CustomerCatalogPage() {
                     backgroundColor: c.hex === "transparent" ? "#1e293b" : c.hex,
                     border: c.hex === "transparent" ? "1px solid var(--border)" : undefined,
                   }}
-                  onClick={() => setSelectedColor(c.name)}
-                  title={c.name}
+                  onClick={() => {
+                    setSelectedColor(c.name);
+                    setCurrentPage(1);
+                  }}
+                  title={c.name === "all" ? "Show All Colors" : c.name}
                 />
               ))}
             </div>
@@ -80,13 +139,16 @@ export default function CustomerCatalogPage() {
 
           {/* Duration Filter */}
           <div className="filter-group">
-            <label className="filter-title">Duration</label>
+            <label className="filter-title">Rental Commitment</label>
             <select
               className="filter-select"
               value={selectedDuration}
-              onChange={(e) => setSelectedDuration(e.target.value)}
+              onChange={(e) => {
+                setSelectedDuration(e.target.value);
+                setCurrentPage(1);
+              }}
             >
-              <option value="all">All Duration</option>
+              <option value="all">All Commitments</option>
               <option value="1 Month">1 Month</option>
               <option value="6 Month">6 Month</option>
               <option value="1 Year">1 Year</option>
@@ -97,7 +159,7 @@ export default function CustomerCatalogPage() {
 
           {/* Price Range Slider */}
           <div className="filter-group">
-            <label className="filter-title">Price Range</label>
+            <label className="filter-title">Monthly Price Cap</label>
             <div className="price-range-slider">
               <input
                 type="range"
@@ -106,37 +168,58 @@ export default function CustomerCatalogPage() {
                 max={10000}
                 step={10}
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                onChange={(e) => {
+                  setMaxPrice(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
               />
               <div className="price-range-labels">
                 <span>$10</span>
-                <strong>Up to ${maxPrice.toLocaleString()}</strong>
-                <span>$10,000</span>
+                <strong style={{ color: "var(--primary-light)" }}>Up to ${maxPrice.toLocaleString()}</strong>
+                <span>$10k</span>
               </div>
             </div>
           </div>
+
+          {(selectedBrand !== "all" || selectedColor !== "all" || selectedDuration !== "all" || maxPrice < 10000) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginTop: 8 }}
+              onClick={() => {
+                setSelectedBrand("all");
+                setSelectedColor("all");
+                setSelectedDuration("all");
+                setMaxPrice(10000);
+                setCurrentPage(1);
+              }}
+            >
+              Reset Filters
+            </button>
+          )}
         </aside>
 
-        {/* ─── Main Product Grid (Matching Image 1 Wireframe) ────────────── */}
+        {/* ─── Main Technical Product Grid ────────────────────────────────── */}
         <main>
           <div className="catalog-header">
             <div>
-              <h1 className="page-title">Products</h1>
+              <h1 className="page-title">Equipment Catalog</h1>
               <p className="page-subtitle">
-                Explore our catalog — click any item to configure duration and rental options.
+                Select equipment line items to configure duration, security deposit, and checkout.
               </p>
             </div>
             <div className="catalog-stats">
               <span className="catalog-stat">
-                <strong>{filteredProducts.length}</strong> items found
+                Showing <strong>{paginatedProducts.length}</strong> of {filteredProducts.length} items
               </span>
             </div>
           </div>
 
           {/* Product Grid */}
           <div className="card-grid stagger-children">
-            {filteredProducts.map((product) => {
+            {paginatedProducts.map((product, idx) => {
               const isOutOfStock = product.inStock === 0;
+              const isWishlisted = wishlistSet.has(product.id);
+              const skuCode = `REF-${product.id.slice(0, 6).toUpperCase()}`;
 
               return (
                 <Link
@@ -144,41 +227,43 @@ export default function CustomerCatalogPage() {
                   href={`/customer/products/${product.id}`}
                   className="product-card-link"
                 >
-                  <article className="card product-card">
-                    {/* Image Placeholder with Out of Stock overlay if inStock === 0 */}
+                  <article className="card product-card technical-card">
+                    {/* Image Container with Non-Colliding Badges */}
                     <div style={{ position: "relative" }}>
                       <ProductIcon category={product.category} size="sm" />
+
+                      {/* Technical Top-Left Out of Stock Badge (Fixes text collision!) */}
                       {isOutOfStock && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            background: "rgba(0,0,0,0.75)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "var(--text-secondary)",
-                            fontWeight: 700,
-                            fontSize: "0.95rem",
-                            borderRadius: "var(--radius-md)",
-                          }}
-                        >
-                          Out of stock
+                        <div className="out-of-stock-tech-badge">
+                          🚫 UNAVAILABLE
                         </div>
                       )}
+
+                      {/* Wishlist toggle icon button ♡ */}
+                      <button
+                        className="btn btn-ghost btn-sm wishlist-tech-btn"
+                        onClick={(e) => toggleWishlist(e, product.id)}
+                        title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
+                      >
+                        {isWishlisted ? "♥" : "♡"}
+                      </button>
                     </div>
 
                     {/* Card Body */}
                     <div className="product-card-body">
-                      <span className="product-category">{product.brand || product.category}</span>
+                      <div className="product-header-line">
+                        <span className="sku-mono">{skuCode}</span>
+                        <span className="brand-tag">{product.brand || product.category}</span>
+                      </div>
+
                       <h3 className="product-name">{product.name}</h3>
 
-                      {/* Wireframe Color Swatches under image */}
+                      {/* Color Swatches */}
                       {product.colorSwatches && (
                         <div className="product-card-swatches">
-                          {product.colorSwatches.map((hex, idx) => (
+                          {product.colorSwatches.map((hex, sIdx) => (
                             <span
-                              key={idx}
+                              key={sIdx}
                               className="card-swatch-dot"
                               style={{ backgroundColor: hex }}
                             />
@@ -186,23 +271,26 @@ export default function CustomerCatalogPage() {
                         </div>
                       )}
 
-                      {/* Wireframe Variant note (e.g. 36, 42 & 55 inch TV) */}
+                      {/* Variant note */}
                       {product.sizeVariantNote && (
                         <div className="product-variant-note">
-                          Note: {product.sizeVariantNote}
+                          Config: {product.sizeVariantNote}
                         </div>
                       )}
 
-                      {/* Rate per Unit format (e.g. $xx / per Month) */}
-                      <div className="product-price-row">
+                      {/* Rate per Unit */}
+                      <div className="product-price-row" style={{ marginTop: 12 }}>
                         <div className="product-price">
                           ${product.price}
-                          <span> / per {product.rentalUnit}</span>
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                            {" "}
+                            / {product.rentalUnit}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Security Deposit Badge & Stock */}
-                      <div className="product-meta">
+                      {/* Technical Deposit & Stock Row */}
+                      <div className="product-meta" style={{ marginTop: 10 }}>
                         <span className="product-deposit-badge">
                           🔒 ${product.securityDeposit} deposit
                         </span>
@@ -211,7 +299,7 @@ export default function CustomerCatalogPage() {
                             !isOutOfStock ? "in-stock" : "out-of-stock"
                           }`}
                         >
-                          {!isOutOfStock ? `${product.inStock} in stock` : "Unavailable"}
+                          {!isOutOfStock ? `• ${product.inStock} in stock` : "Out of stock"}
                         </span>
                       </div>
                     </div>
@@ -222,36 +310,43 @@ export default function CustomerCatalogPage() {
           </div>
 
           {/* Wireframe Pagination Controls (< 1 2 ... >) */}
-          <div className="pagination-wrapper">
-            <button
-              className="page-num-btn"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              &lt;
-            </button>
-            <button
-              className={`page-num-btn ${currentPage === 1 ? "active" : ""}`}
-              onClick={() => setCurrentPage(1)}
-            >
-              1
-            </button>
-            <button
-              className={`page-num-btn ${currentPage === 2 ? "active" : ""}`}
-              onClick={() => setCurrentPage(2)}
-            >
-              2
-            </button>
-            <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>...</span>
-            <button
-              className="page-num-btn"
-              onClick={() => setCurrentPage((p) => p + 1)}
-            >
-              &gt;
-            </button>
-          </div>
+          {totalPages > 1 && (
+            <div className="pagination-wrapper">
+              <button
+                className="page-num-btn"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                &lt;
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  className={`page-num-btn ${currentPage === pageNum ? "active" : ""}`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              <button
+                className="page-num-btn"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                &gt;
+              </button>
+            </div>
+          )}
         </main>
       </div>
     </div>
+  );
+}
+
+export default function CustomerCatalogPage() {
+  return (
+    <Suspense fallback={<div className="page-shell"><p>Loading equipment catalog...</p></div>}>
+      <CatalogContent />
+    </Suspense>
   );
 }
