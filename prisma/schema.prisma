@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ─── User Model ─────────────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("customer") // "admin" | "customer"
+  rentals      Rental[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Product Model ───────────────────────────────────────────────────────────
+
+// EXTENSIBILITY NOTE:
+// To support multi-vendor / marketplace capabilities in future iterations:
+// - Add a `vendorId String?` field to `Product`
+// - Link it to a `Vendor` table: `vendor Vendor? @relation(fields: [vendorId], references: [id])`
+model Product {
+  id              String   @id @default(uuid())
+  name            String
+  description     String
+  category        String
+  image           String   // image path or URL
+  rentalUnit      String   // "day" | "week" | "month"
+  price           Float    // per rental unit
+  securityDeposit Float    // fixed deposit amount
+  inStock         Int
+  rentals         Rental[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Rental Model ───────────────────────────────────────────────────────────
+
+// EXTENSIBILITY NOTE:
+// The `status` field currently maps 1:1 to the MVP data model ("booked"|"active"|"returned"|"overdue").
+// In a full commercial quotation & rental lifecycle, this status can expand to:
+// - DRAFT (Quotation Draft)
+// - QUOTATION_SENT (Quotation sent to client)
+// - CONFIRMED (Quotation confirmed / Sales Order)
+// - BOOKED (Reservation locked in)
+// - ACTIVE (Picked up / Delivered to customer)
+// - RETURNED (Item returned & deposit settled)
+// - CANCELLED (Booking cancelled)
+// - OVERDUE (Past return date without check-in)
+model Rental {
+  id              String   @id @default(uuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+  customerName    String
+  rentalStart     String   // ISO YYYY-MM-DD format
+  rentalEnd       String   // ISO YYYY-MM-DD format
+  deliveryMethod  String   // "pickup" | "delivery"
+  status          String   @default("booked") // "booked" | "active" | "returned" | "overdue"
+  depositAmount   Float
+  depositStatus   String   @default("held") // "held" | "refunded" | "partially-deducted"
+  lateFeeCharged  Float    @default(0)
+  damageCharge    Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Late Fee Configuration ──────────────────────────────────────────────────
+model LateFeeConfig {
+  id              String   @id @default("default")
+  dailyRate       Float    @default(15)
+  gracePeriodDays Int      @default(1)
+  updatedAt       DateTime @updatedAt
+}

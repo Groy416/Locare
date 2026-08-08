@@ -1,29 +1,74 @@
 "use client";
 
-import {
-  rentals,
-  getProduct,
-  calculateLateFee,
-  calculateDepositRefund,
-  lateFeeConfig,
-} from "@/lib/data";
+import { useEffect, useState } from "react";
+import type { Rental } from "@/lib/data";
+
+interface ReturnableRental extends Rental {
+  product?: { name: string };
+  estimatedLateFee: number;
+}
 
 export default function AdminReturnsPage() {
-  // Only show active and overdue rentals that can be returned
-  const returnableRentals = rentals.filter(
-    (r) => r.status === "active" || r.status === "overdue"
-  );
+  const [returnableRentals, setReturnableRentals] = useState<ReturnableRental[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [lateConfig, setLateConfig] = useState({ dailyRate: 15, gracePeriodDays: 1 });
+
+  const loadData = () => {
+    setLoading(true);
+    fetch("/api/dashboard")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.returnsQueue)) {
+          setReturnableRentals(data.returnsQueue);
+        }
+        if (data && data.lateConfig) {
+          setLateConfig(data.lateConfig);
+        }
+      })
+      .catch((err) => console.error("Error fetching returns queue:", err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleProcessReturn = async (rentalId: string) => {
+    setProcessingId(rentalId);
+    try {
+      const res = await fetch(`/api/rentals/${rentalId}/return`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ damageCharge: 0 }),
+      });
+
+      if (res.ok) {
+        loadData();
+      } else {
+        alert("Failed to process return settlement.");
+      }
+    } catch (err) {
+      console.error("Error returning rental:", err);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   return (
     <div className="page-shell animate-fade-in">
       <h1 className="page-title">Return Processing</h1>
       <p className="page-subtitle">
         Process equipment returns with auto late-fee calculation and deposit
-        settlement. Late fee: ${lateFeeConfig.dailyRate}/day after{" "}
-        {lateFeeConfig.gracePeriodDays}-day grace period.
+        settlement. Late fee: ${lateConfig.dailyRate}/day after{" "}
+        {lateConfig.gracePeriodDays}-day grace period.
       </p>
 
-      {returnableRentals.length === 0 ? (
+      {loading ? (
+        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)" }}>
+          Loading return queue...
+        </div>
+      ) : returnableRentals.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">✅</div>
           <p className="empty-state-text">
@@ -33,9 +78,8 @@ export default function AdminReturnsPage() {
       ) : (
         <div className="card-grid stagger-children">
           {returnableRentals.map((rental) => {
-            const product = getProduct(rental.productId);
-            const lateFee = calculateLateFee(rental);
-            const refundAmount = calculateDepositRefund(rental, lateFee);
+            const lateFee = rental.estimatedLateFee || 0;
+            const refundAmount = Math.max(0, rental.depositAmount - lateFee);
             const isOverdue = rental.status === "overdue";
 
             return (
@@ -43,9 +87,7 @@ export default function AdminReturnsPage() {
                 key={rental.id}
                 className="card"
                 style={{
-                  borderColor: isOverdue
-                    ? "rgba(239, 68, 68, 0.3)"
-                    : undefined,
+                  borderColor: isOverdue ? "rgba(239, 68, 68, 0.3)" : undefined,
                 }}
               >
                 {/* Header */}
@@ -66,7 +108,7 @@ export default function AdminReturnsPage() {
                         marginBottom: "2px",
                       }}
                     >
-                      {product?.name ?? "Unknown"}
+                      {rental.product?.name ?? rental.productId}
                     </h3>
                     <span
                       style={{
@@ -95,15 +137,11 @@ export default function AdminReturnsPage() {
                   }}
                 >
                   <div>
-                    <strong style={{ color: "var(--text-primary)" }}>
-                      Customer:
-                    </strong>{" "}
+                    <strong style={{ color: "var(--text-primary)" }}>Customer:</strong>{" "}
                     {rental.customerName}
                   </div>
                   <div>
-                    <strong style={{ color: "var(--text-primary)" }}>
-                      Due Date:
-                    </strong>{" "}
+                    <strong style={{ color: "var(--text-primary)" }}>Due Date:</strong>{" "}
                     <span
                       style={{
                         color: isOverdue ? "var(--danger)" : undefined,
@@ -144,38 +182,18 @@ export default function AdminReturnsPage() {
                       fontSize: "0.85rem",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ color: "var(--text-secondary)" }}>
-                        Security Deposit
-                      </span>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: "var(--text-primary)",
-                        }}
-                      >
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Security Deposit</span>
+                      <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                         ${rental.depositAmount}
                       </span>
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ color: "var(--text-secondary)" }}>
-                        Late Fee
-                      </span>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Auto Late Fee</span>
                       <span
                         style={{
                           fontWeight: 600,
-                          color:
-                            lateFee > 0 ? "var(--danger)" : "var(--text-muted)",
+                          color: lateFee > 0 ? "var(--danger)" : "var(--text-muted)",
                         }}
                       >
                         {lateFee > 0 ? `-$${lateFee}` : "$0"}
@@ -189,12 +207,7 @@ export default function AdminReturnsPage() {
                         justifyContent: "space-between",
                       }}
                     >
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: "var(--text-primary)",
-                        }}
-                      >
+                      <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>
                         Refund to Customer
                       </span>
                       <span
@@ -211,8 +224,12 @@ export default function AdminReturnsPage() {
                 </div>
 
                 {/* Action */}
-                <button className="btn btn-primary btn-block">
-                  Process Return & Settle
+                <button
+                  className="btn btn-primary btn-block"
+                  onClick={() => handleProcessReturn(rental.id)}
+                  disabled={processingId === rental.id}
+                >
+                  {processingId === rental.id ? "Processing..." : "Process Return & Settle"}
                 </button>
               </div>
             );

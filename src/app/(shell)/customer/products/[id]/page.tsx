@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { products } from "@/lib/data";
+import type { Product } from "@/lib/data";
 import { useCart, calculateRentalUnits, formatRentalUnit } from "@/lib/cart-context";
 import ProductIcon from "@/components/ProductIcon";
 
@@ -25,16 +25,28 @@ function getMinEndDate(startDate: string): string {
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const { addItem } = useCart();
   const productId = params.id as string;
-  const product = products.find((p) => p.id === productId);
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // ─── Form state ────────────────────────────────────────────────────────
   const [rentalStart, setRentalStart] = useState(getTodayString());
   const [rentalEnd, setRentalEnd] = useState(getTomorrowString());
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((products: Product[]) => {
+        const found = products.find((p) => p.id === productId);
+        if (found) setProduct(found);
+      })
+      .catch((err) => console.error("Error fetching product:", err))
+      .finally(() => setLoading(false));
+  }, [productId]);
 
   // ─── Computed costs ────────────────────────────────────────────────────
   const costBreakdown = useMemo(() => {
@@ -54,7 +66,16 @@ export default function ProductDetailPage() {
     };
   }, [product, rentalStart, rentalEnd, quantity]);
 
-  // ─── Not found ─────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="page-shell animate-fade-in">
+        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)" }}>
+          Loading equipment details...
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="page-shell animate-fade-in">
@@ -69,7 +90,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  // ─── Handlers ──────────────────────────────────────────────────────────
   const handleAddToCart = () => {
     if (!costBreakdown) return;
 
@@ -89,7 +109,6 @@ export default function ProductDetailPage() {
 
   const handleStartDateChange = (val: string) => {
     setRentalStart(val);
-    // Ensure end date is after start date
     if (val >= rentalEnd) {
       const d = new Date(val);
       d.setDate(d.getDate() + 1);

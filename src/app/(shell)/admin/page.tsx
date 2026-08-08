@@ -1,46 +1,56 @@
 "use client";
 
-import {
-  rentals,
-  products,
-  getProduct,
-  calculateLateFee,
-} from "@/lib/data";
+import { useEffect, useState } from "react";
+import type { Rental, Product } from "@/lib/data";
+import type { DashboardMetrics } from "@/lib/rental-logic";
 
 export default function AdminDashboardPage() {
-  // ─── Compute metrics from seed data ──────────────────────────────────────
+  const [data, setData] = useState<{
+    metrics: DashboardMetrics;
+    rentals: Rental[];
+    products: Product[];
+    returnsQueue: Array<Rental & { estimatedLateFee: number }>;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const activeRentals = rentals.filter((r) => r.status === "active");
-  const overdueRentals = rentals.filter((r) => r.status === "overdue");
-  const bookedRentals = rentals.filter((r) => r.status === "booked");
-  const returnedRentals = rentals.filter((r) => r.status === "returned");
+  useEffect(() => {
+    fetch("/api/dashboard")
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && resData.metrics) {
+          setData({
+            metrics: resData.metrics,
+            rentals: resData.rentals || [],
+            products: resData.products || [],
+            returnsQueue: resData.returnsQueue || [],
+          });
+        }
+      })
+      .catch((err) => console.error("Error loading dashboard data:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const totalDepositsHeld = rentals
-    .filter((r) => r.depositStatus === "held")
-    .reduce((sum, r) => sum + r.depositAmount, 0);
-
-  const totalRevenue = rentals.reduce((sum, r) => {
-    const product = getProduct(r.productId);
-    if (!product) return sum;
-    const start = new Date(r.rentalStart);
-    const end = new Date(r.rentalEnd);
-    const days = Math.max(
-      1,
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  if (loading || !data) {
+    return (
+      <div className="page-shell animate-fade-in">
+        <h1 className="page-title">Admin Dashboard</h1>
+        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)" }}>
+          Loading real-time operational dashboard from database...
+        </div>
+      </div>
     );
-    return sum + product.price * days;
-  }, 0);
+  }
 
-  const pendingLateFees = overdueRentals.reduce(
-    (sum, r) => sum + calculateLateFee(r),
+  const { metrics, rentals, returnsQueue } = data;
+  const activeCount = rentals.filter((r) => r.status === "active").length;
+  const overdueCount = rentals.filter((r) => r.status === "overdue").length;
+  const bookedCount = rentals.filter((r) => r.status === "booked").length;
+  const returnedCount = rentals.filter((r) => r.status === "returned").length;
+
+  const pendingLateFees = returnsQueue.reduce(
+    (sum, r) => sum + (r.estimatedLateFee || 0),
     0
   );
-
-  const totalProducts = products.length;
-  const totalStock = products.reduce((sum, p) => sum + p.inStock, 0);
-  const itemsRented = activeRentals.length + overdueRentals.length;
-  const utilizationRate =
-    totalStock > 0 ? Math.round((itemsRented / totalStock) * 100) : 0;
 
   return (
     <div className="page-shell animate-fade-in">
@@ -53,30 +63,30 @@ export default function AdminDashboardPage() {
       <div className="stat-grid stagger-children">
         <div className="stat-card">
           <span className="stat-label">Active Rentals</span>
-          <span className="stat-value primary">{activeRentals.length}</span>
+          <span className="stat-value primary">{activeCount}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Overdue</span>
-          <span className="stat-value danger">{overdueRentals.length}</span>
+          <span className="stat-value danger">{overdueCount}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Upcoming Bookings</span>
-          <span className="stat-value">{bookedRentals.length}</span>
+          <span className="stat-value">{bookedCount}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Returned</span>
-          <span className="stat-value success">{returnedRentals.length}</span>
+          <span className="stat-value success">{returnedCount}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Est. Revenue</span>
           <span className="stat-value primary">
-            ${totalRevenue.toLocaleString()}
+            ${metrics.totalRevenue.toLocaleString()}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Deposits Held</span>
           <span className="stat-value warning">
-            ${totalDepositsHeld.toLocaleString()}
+            ${metrics.totalHeldDeposits.toLocaleString()}
           </span>
         </div>
         <div className="stat-card">
@@ -87,7 +97,7 @@ export default function AdminDashboardPage() {
         </div>
         <div className="stat-card">
           <span className="stat-label">Utilization Rate</span>
-          <span className="stat-value primary">{utilizationRate}%</span>
+          <span className="stat-value primary">{metrics.utilizationRate}%</span>
         </div>
       </div>
 
@@ -108,7 +118,7 @@ export default function AdminDashboardPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Product</th>
+              <th>Product ID</th>
               <th>Customer</th>
               <th>Period</th>
               <th>Status</th>
@@ -118,11 +128,7 @@ export default function AdminDashboardPage() {
           </thead>
           <tbody>
             {rentals.map((rental) => {
-              const product = getProduct(rental.productId);
-              const lateFee =
-                rental.status === "overdue"
-                  ? calculateLateFee(rental)
-                  : rental.lateFeeCharged;
+              const lateFee = rental.lateFeeCharged || 0;
 
               return (
                 <tr key={rental.id}>
@@ -136,7 +142,7 @@ export default function AdminDashboardPage() {
                     {rental.id}
                   </td>
                   <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-                    {product?.name ?? "Unknown"}
+                    {rental.productId}
                   </td>
                   <td>{rental.customerName}</td>
                   <td>
@@ -175,62 +181,6 @@ export default function AdminDashboardPage() {
                 </tr>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ─── Inventory Summary ───────────────────────────────────────────── */}
-      <h2
-        style={{
-          fontSize: "1.15rem",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          marginTop: "40px",
-          marginBottom: "16px",
-        }}
-      >
-        Inventory Summary
-      </h2>
-
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Deposit</th>
-              <th>In Stock</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-                  {product.name}
-                </td>
-                <td>{product.category}</td>
-                <td>
-                  ${product.price}/{product.rentalUnit}
-                </td>
-                <td>${product.securityDeposit}</td>
-                <td>
-                  <span
-                    style={{
-                      color:
-                        product.inStock > 2
-                          ? "var(--success)"
-                          : product.inStock > 0
-                          ? "var(--warning)"
-                          : "var(--danger)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {product.inStock}
-                  </span>
-                </td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
