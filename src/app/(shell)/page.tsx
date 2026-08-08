@@ -2,6 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import {
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  Calendar,
+  Clock,
+  Truck,
+  FileText,
+  BarChart3,
+  Boxes,
+  CheckCircle2,
+  Lock,
+  Layers,
+  ChevronRight,
+} from "lucide-react";
 
 /* ── Intersection Observer hook for scroll-triggered animations ── */
 function useInView(threshold = 0.15) {
@@ -53,6 +69,7 @@ function AnimatedCounter({ target, suffix = "", prefix = "", duration = 2000 }: 
 
   return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
 }
+
 
 /* ── Pixel Art Product Sprites (inline SVG, 32x32 grid) ── */
 function PixelSprite({ type, size = 48 }: { type: string; size?: number }) {
@@ -243,9 +260,9 @@ export default function LandingPage() {
 
         <div className={`page-shell lp-hero__inner ${hero.visible ? "lp-reveal" : "lp-hidden"}`}>
           {/* Badge */}
-          <div className="lp-badge px-badge" style={{ transitionDelay: "100ms" }}>
-            <span className="lp-badge__dot px-dot" />
-            <span>▸ EQUIPMENT RENTAL & ERP PLATFORM</span>
+          <div className="lp-badge px-badge flex items-center gap-2" style={{ transitionDelay: "100ms" }}>
+            <Sparkles className="w-4 h-4 text-lime-400 animate-spin-slow" />
+            <span className="font-semibold tracking-wide">ENTERPRISE RENTAL & ERP PLATFORM</span>
           </div>
 
           {/* Title */}
@@ -261,12 +278,14 @@ export default function LandingPage() {
           </p>
 
           {/* CTAs */}
-          <div className="lp-hero__ctas" style={{ transitionDelay: "550ms" }}>
-            <Link href="/auth/login?redirect=/customer" className="lp-btn lp-btn--primary px-btn">
-              <span>▶ Get Started</span>
+          <div className="lp-hero__ctas flex items-center justify-center gap-4 flex-wrap" style={{ transitionDelay: "550ms" }}>
+            <Link href="/auth/login?redirect=/customer" className="lp-btn lp-btn--primary px-btn flex items-center gap-2 font-bold px-6 py-3.5 rounded-2xl bg-gradient-to-r from-lime-500 via-emerald-500 to-teal-500 text-slate-950 shadow-xl shadow-lime-500/25 hover:scale-105 transition-all">
+              <span>Customer Storefront</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="/auth/login?redirect=/admin" className="lp-btn lp-btn--glass px-btn">
-              <span>◈ Admin ERP Demo</span>
+            <Link href="/auth/login?redirect=/admin" className="lp-btn lp-btn--glass px-btn flex items-center gap-2 font-semibold px-6 py-3.5 rounded-2xl bg-slate-900/80 border border-slate-700/80 text-white hover:bg-slate-800 transition-all backdrop-blur-xl">
+              <Layers className="w-4 h-4 text-teal-400" />
+              <span>Admin ERP Portal</span>
             </Link>
           </div>
 

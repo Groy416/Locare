@@ -7,20 +7,38 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useRole } from "@/lib/role-context";
 import { useCart } from "@/lib/cart-context";
 import { useTheme } from "@/lib/theme-context";
+import {
+  Search,
+  ShoppingCart,
+  Heart,
+  User,
+  Sun,
+  Moon,
+  ShieldCheck,
+  ChevronDown,
+  LogOut,
+  Package,
+  Calendar,
+  BarChart3,
+  Settings,
+  Sparkles,
+  LayoutDashboard,
+  Boxes,
+} from "lucide-react";
 
 const customerNav = [
-  { href: "/customer", label: "Products" },
-  { href: "/customer/terms", label: "Terms & Condition" },
-  { href: "/customer/about", label: "About us" },
-  { href: "/customer/contact", label: "Contact Us" },
+  { href: "/customer", label: "Products", icon: Boxes },
+  { href: "/customer/terms", label: "Terms & Condition", icon: ShieldCheck },
+  { href: "/customer/about", label: "About us", icon: Sparkles },
+  { href: "/customer/contact", label: "Contact Us", icon: User },
 ];
 
 const adminNav = [
-  { href: "/admin", label: "Orders" },
-  { href: "/admin/schedule", label: "Schedule" },
-  { href: "/admin/products", label: "Products" },
-  { href: "/admin/reports", label: "Reports" },
-  { href: "/admin/settings", label: "Settings" },
+  { href: "/admin", label: "Orders", icon: LayoutDashboard },
+  { href: "/admin/schedule", label: "Schedule", icon: Calendar },
+  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Header() {
@@ -65,156 +83,194 @@ export default function Header() {
   };
 
   return (
-    <header className="header">
-      <div className="header-inner">
-        {/* Logo */}
-        <Link href={activeRole === "customer" ? "/customer" : "/admin"} className="logo">
-          <div className="logo-badge px-logo-badge" style={{ background: "linear-gradient(135deg, #5B8731, #7CCC19)", border: "2px solid #7CCC19" }}>
-            <span style={{ fontFamily: "monospace", fontWeight: 900, fontSize: "1.1rem", color: "#ffffff" }}>🟩</span>
+    <header className="header backdrop-blur-xl border-b border-slate-800/60 sticky top-0 z-50 bg-slate-950/80 transition-colors duration-300">
+      <div className="header-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        {/* Brand Logo */}
+        <Link href={activeRole === "customer" ? "/customer" : "/admin"} className="logo flex items-center gap-3 group">
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-lime-500 to-teal-400 p-[2px] shadow-lg shadow-lime-500/20 group-hover:scale-105 transition-transform duration-300">
+            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-lime-400 animate-pulse" />
+            </div>
           </div>
-          <span className="logo-text" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif", fontWeight: 900, letterSpacing: "-0.02em" }}>Locare</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-lime-400 bg-clip-text text-transparent">
+              Locare
+            </span>
+            <span className="text-[10px] font-semibold tracking-wider text-lime-500 uppercase -mt-1">
+              Rental ERP
+            </span>
+          </div>
         </Link>
 
         {/* Navigation Links */}
-        <nav className="header-nav">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-link ${
-                pathname === item.href || (item.href === "/admin" && pathname.startsWith("/admin/orders"))
-                  ? "nav-link-active"
-                  : ""
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="header-nav hidden md:flex items-center gap-1 bg-slate-900/60 p-1.5 rounded-full border border-slate-800/80">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/admin/orders"));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  isActive
+                    ? "bg-gradient-to-r from-lime-500 to-emerald-600 text-slate-950 shadow-md shadow-lime-500/20 font-bold"
+                    : "text-slate-300 hover:text-white hover:bg-slate-800/70"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-slate-950" : "text-slate-400"}`} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Search Bar */}
         {activeRole === "customer" && (
-          <form onSubmit={handleSearchSubmit} className="header-search-form">
+          <form onSubmit={handleSearchSubmit} className="header-search-form relative hidden lg:flex items-center flex-1 max-w-xs">
             <input
               type="text"
-              className="header-search-input"
-              placeholder="Search products..."
+              className="w-full bg-slate-900/80 text-xs text-slate-100 placeholder-slate-400 rounded-full pl-9 pr-8 py-2 border border-slate-800 focus:outline-none focus:border-lime-500/80 focus:ring-1 focus:ring-lime-500/80 transition-all"
+              placeholder="Search equipment, gear & tools..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button type="submit" className="header-search-btn" title="Search">
-              🔍
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+            <button type="submit" className="absolute right-2 text-[10px] font-mono font-medium text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">
+              ⌘K
             </button>
           </form>
         )}
 
         {/* Right Header Actions */}
-        <div className="header-actions">
+        <div className="header-actions flex items-center gap-3">
           {/* Day / Night Theme Toggle */}
           <button
-            className="theme-toggle-btn"
+            className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all flex items-center gap-1.5 text-xs font-medium"
             onClick={toggleTheme}
             title={theme === "dark" ? "Switch to Day Mode" : "Switch to Night Mode"}
           >
-            {theme === "dark" ? "☀️ Day" : "🌙 Night"}
+            {theme === "dark" ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">Dark</span>
+              </>
+            )}
           </button>
 
           {/* Customer Wishlist & Cart */}
           {activeRole === "customer" && (
-            <>
-              <Link href="/customer/wishlist" className="header-action-icon" title="Wishlist">
-                ♡
+            <div className="flex items-center gap-2">
+              <Link href="/customer/wishlist" className="relative p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-rose-400 hover:border-rose-500/30 transition-all">
+                <Heart className="w-4 h-4" />
                 {wishlistCount > 0 && (
-                  <span className="header-action-badge">{wishlistCount}</span>
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-rose-500 rounded-full px-1 shadow-sm">
+                    {wishlistCount}
+                  </span>
                 )}
               </Link>
 
-              <Link href="/customer/cart" className="header-action-icon" title="Cart">
-                🛒
+              <Link href="/customer/cart" className="relative p-2 rounded-xl bg-gradient-to-r from-lime-500/10 to-emerald-500/10 border border-lime-500/30 text-lime-400 hover:bg-lime-500/20 transition-all">
+                <ShoppingCart className="w-4 h-4" />
                 {itemCount > 0 && (
-                  <span className="header-action-badge">{itemCount}</span>
+                  <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-[20px] text-[10px] font-bold text-slate-950 bg-lime-400 rounded-full px-1 shadow-md shadow-lime-400/40 animate-pulse">
+                    {itemCount}
+                  </span>
                 )}
               </Link>
-            </>
+            </div>
           )}
 
           {/* Profile Dropdown */}
-          <div className="profile-dropdown-wrapper">
+          <div className="profile-dropdown-wrapper relative">
             <button
-              className="profile-avatar-btn"
+              className="profile-avatar-btn flex items-center gap-2 p-1.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all text-left"
               onClick={() => setShowProfileMenu((prev) => !prev)}
-              title="User Profile"
             >
-              <span className="avatar-circle">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-lime-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-xs shadow-sm">
                 {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : "U"}
-              </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
             {showProfileMenu && (
-              <div className="profile-dropdown-menu">
-                <div className="profile-dropdown-header">
-                  <strong>{session?.user?.name || "User Account"}</strong>
-                  <small>{session?.user?.email || "user@locare.com"}</small>
+              <div className="profile-dropdown-menu absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-3 py-2 border-b border-slate-800/80 mb-1">
+                  <p className="text-xs font-bold text-slate-100 truncate">{session?.user?.name || "User Account"}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{session?.user?.email || "user@locare.com"}</p>
                 </div>
-                <div className="profile-dropdown-divider" />
+                
                 <Link
                   href="/customer/profile"
-                  className="profile-dropdown-item"
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all"
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  My account / My Profile
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  My Account Profile
                 </Link>
                 <Link
                   href="/customer/bookings"
-                  className="profile-dropdown-item"
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all"
                   onClick={() => setShowProfileMenu(false)}
                 >
-                  My Orders
+                  <Package className="w-3.5 h-3.5 text-slate-400" />
+                  My Rental Orders
                 </Link>
                 <Link
                   href="/customer/settings"
-                  className="profile-dropdown-item"
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all"
                   onClick={() => setShowProfileMenu(false)}
                 >
+                  <Settings className="w-3.5 h-3.5 text-slate-400" />
                   Settings
                 </Link>
-                <div className="profile-dropdown-divider" />
+
+                <div className="my-1 border-t border-slate-800/80" />
+
                 <button
-                  className="profile-dropdown-item logout"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all text-left"
                   onClick={() => {
                     setShowProfileMenu(false);
                     signOut({ callbackUrl: "/customer" });
                   }}
                 >
-                  Logout
+                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  Sign Out
                 </button>
               </div>
             )}
           </div>
 
-          {/* Role Switcher */}
-          <div className="role-switcher">
-            <div className="role-toggle" role="radiogroup" aria-label="Role switcher">
-              <button
-                role="radio"
-                aria-checked={activeRole === "customer"}
-                onClick={() => handleRoleToggle("customer")}
-                className={`role-btn ${activeRole === "customer" ? "role-btn-active" : ""}`}
-              >
-                Customer
-              </button>
-              <button
-                role="radio"
-                aria-checked={activeRole === "admin" || activeRole === "vendor"}
-                onClick={() => handleRoleToggle("admin")}
-                className={`role-btn ${activeRole === "admin" || activeRole === "vendor" ? "role-btn-active" : ""}`}
-              >
-                Admin
-              </button>
-            </div>
+          {/* Role Switcher Pill */}
+          <div className="role-switcher bg-slate-900/90 p-1 rounded-xl border border-slate-800 flex items-center">
+            <button
+              onClick={() => handleRoleToggle("customer")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                activeRole === "customer"
+                  ? "bg-slate-800 text-lime-400 shadow-sm border border-slate-700"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Customer
+            </button>
+            <button
+              onClick={() => handleRoleToggle("admin")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                activeRole === "admin" || activeRole === "vendor"
+                  ? "bg-slate-800 text-teal-400 shadow-sm border border-slate-700"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Admin
+            </button>
           </div>
         </div>
       </div>
     </header>
   );
 }
+
