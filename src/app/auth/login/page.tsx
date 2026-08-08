@@ -59,10 +59,10 @@ function LoginContent() {
     await performLogin(email, password, fallbackPath);
   };
 
-  const handleRoleSelect = (roleEmail: string, rolePass: string, targetPath: string) => {
+  const handleRoleSelect = (roleEmail: string, rolePass: string) => {
     setEmail(roleEmail);
     setPassword(rolePass);
-    performLogin(roleEmail, rolePass, targetPath);
+    setError("");
   };
 
   return (
@@ -76,59 +76,42 @@ function LoginContent() {
 
         {error && <div className="auth-error-badge">{error}</div>}
 
-        {/* Role Quick Selection Tabs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-          <button
-            type="button"
-            className="btn btn-block btn-lg"
-            style={{
-              background: "linear-gradient(135deg, #5B8731, #7CCC19)",
-              color: "#fff",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-            onClick={() => handleRoleSelect("customer@locare.com", "customer123", "/customer")}
-            disabled={loading}
-          >
-            👤 Sign In as Customer ➔ Customer Portal
-          </button>
+        {/* Role Quick Selection Preset Buttons */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, display: "block", marginBottom: 8, textTransform: "uppercase" }}>
+            PRE-FILL DEMO ACCOUNT CREDENTIALS:
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${email === "customer@locare.com" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontWeight: 700 }}
+              onClick={() => handleRoleSelect("customer@locare.com", "customer123")}
+            >
+              👤 Customer
+            </button>
 
-          <button
-            type="button"
-            className="btn btn-block btn-lg"
-            style={{
-              background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
-              color: "#fff",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-            onClick={() => handleRoleSelect("vendor@locare.com", "vendor123", "/admin")}
-            disabled={loading}
-          >
-            🏢 Sign In as Vendor ➔ Vendor ERP Dashboard
-          </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${email === "vendor@locare.com" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontWeight: 700 }}
+              onClick={() => handleRoleSelect("vendor@locare.com", "vendor123")}
+            >
+              🏢 Vendor
+            </button>
 
-          <button
-            type="button"
-            className="btn btn-block btn-lg"
-            style={{
-              background: "linear-gradient(135deg, #7C3AED, #6D28D9)",
-              color: "#fff",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-            onClick={() => handleRoleSelect("admin@locare.com", "admin123", "/admin")}
-            disabled={loading}
-          >
-            🛡️ Sign In as Admin ➔ Admin System
-          </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${email === "admin@locare.com" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontWeight: 700 }}
+              onClick={() => handleRoleSelect("admin@locare.com", "admin123")}
+            >
+              🛡️ Admin
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
-          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>OR ENTER YOUR CREDENTIALS</span>
-          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        </div>
+        <div style={{ display: "flex", flex: 1, height: 1, background: "var(--border)", margin: "16px 0" }} />
 
         <form onSubmit={handleCustomSubmit} className="auth-form">
           <div className="form-group">
