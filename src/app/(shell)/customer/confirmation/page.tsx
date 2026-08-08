@@ -7,7 +7,7 @@ import { getOrder } from "@/lib/data";
 
 function ConfirmationContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId") || "SO00001";
+  const orderId = searchParams.get("orderId") || "SO00010";
   const order = getOrder(orderId);
 
   const rentalAmount = order?.totalRentalCost ?? 0;
@@ -19,161 +19,109 @@ function ConfirmationContent() {
   };
 
   return (
-    <div className="page-shell animate-fade-in invoice-printable">
-      {/* Printable Header - Visible only in Print / PDF */}
+    <div className="page-shell animate-fade-in">
+      {/* Printable Header - Visible only when printing */}
       <div className="print-only invoice-print-header">
         <h1>RENTFLOW INVOICE & RESERVATION RECEIPT</h1>
         <p>Order Reference: {orderId} • Date: {order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
       </div>
 
-      {/* Payment Success Banner */}
-      <div className="confirmation-banner card">
-        <div className="confirmation-top-row">
-          <span className="payment-status-badge">✓ Payment Successful (Simulated)</span>
-          <button onClick={handlePrint} className="btn btn-ghost btn-sm no-print">
-            🖨️ Download / Print Invoice
-          </button>
-        </div>
+      <div className="cart-layout">
+        {/* Left Column (Image 2 Wireframe) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Header Row: Title + Print Button */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <h1 className="confirmation-title" style={{ fontSize: "2.2rem", color: "#f87171" }}>
+                Thank you for your order
+              </h1>
+              <p style={{ fontSize: "1.1rem", color: "var(--text-secondary)", marginTop: 4 }}>
+                Order <strong>{orderId}</strong>
+              </p>
+            </div>
 
-        <div className="confirmation-icon">🎉</div>
-        <h1 className="confirmation-title">Booking Confirmed!</h1>
-        <p className="confirmation-subtitle">
-          Order <strong>#{orderId}</strong> has been successfully placed and added to system records.
-        </p>
-
-        {/* Separate Rental & Deposit Highlight Banner */}
-        <div className="payment-banner-breakdown">
-          <div className="payment-banner-pill">
-            <span>Rental Amount Paid:</span>
-            <strong>${rentalAmount.toLocaleString()}</strong>
+            <button onClick={handlePrint} className="btn btn-ghost btn-sm no-print">
+              🖨️ Print
+            </button>
           </div>
-          <div className="payment-banner-pill deposit">
-            <span>Security Deposit Held:</span>
-            <strong>🔒 ${depositAmount.toLocaleString()}</strong>
+
+          {/* Solid Green Payment Banner (Image 2 Wireframe: "Your Payment has been processed.") */}
+          <div className="green-payment-banner">
+            <span>✓</span> Your Payment has been processed.
           </div>
-          <div className="payment-banner-pill grand">
-            <span>Total Paid Now:</span>
-            <strong>${grandTotal.toLocaleString()}</strong>
-          </div>
-        </div>
-      </div>
 
-      {/* Details Grid */}
-      <div className="confirmation-grid">
-        {/* Customer & Fulfillment Details */}
-        <div className="card">
-          <h2 className="checkout-section-title">Fulfillment & Contact Info</h2>
-          <div className="confirmation-details-list">
-            <div className="confirmation-detail-item">
-              <span>Customer Name:</span>
-              <strong>{order?.customerName || "Alex Morgan"}</strong>
-            </div>
-
-            <div className="confirmation-detail-item">
-              <span>Email:</span>
-              <strong>{order?.customerEmail || "alex.morgan@example.com"}</strong>
-            </div>
-
-            <div className="confirmation-detail-item">
-              <span>Phone:</span>
-              <strong>{order?.customerPhone || "+1 (555) 234-5678"}</strong>
-            </div>
-
-            <div className="confirmation-detail-item">
-              <span>Fulfillment Option:</span>
-              <strong style={{ textTransform: "capitalize" }}>
-                {order?.deliveryMethod === "delivery" ? "🚚 Delivery to Address" : "🏪 Store Pickup"}
-              </strong>
-            </div>
-
-            <div className="confirmation-detail-item">
-              <span>Destination / Depot:</span>
-              <strong>{order?.deliveryAddress || "742 Evergreen Terrace, Springfield"}</strong>
-            </div>
+          {/* Delivery & Billing Customer Card (Image 2 Wireframe) */}
+          <div className="card">
+            <span className="main-address-badge" style={{ marginBottom: 12, display: "inline-block" }}>
+              Delivery & Billing
+            </span>
+            <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: 8 }}>
+              {order?.customerName || "Alex Morgan"}
+            </h3>
+            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+              {order?.deliveryAddress || "742 Evergreen Terrace, Springfield, OR 97477"}
+            </p>
           </div>
         </div>
 
-        {/* Financial Summary */}
-        <div className="card">
-          <h2 className="checkout-section-title">Financial Summary</h2>
-          <div className="confirmation-details-list">
-            <div className="confirmation-detail-item">
-              <span>Rental Charges (Subtotal):</span>
-              <strong>${rentalAmount.toLocaleString()}</strong>
-            </div>
+        {/* Right Column: Order Summary Card (Image 2 Wireframe) */}
+        <div className="cart-summary-sidebar">
+          <div className="booking-card">
+            <h2 className="booking-card-title">Order Breakdown</h2>
 
-            <div className="confirmation-detail-item">
-              <span>Security Deposit (Refundable):</span>
-              <strong style={{ color: "var(--warning)" }}>
-                🔒 ${depositAmount.toLocaleString()}
-              </strong>
-            </div>
-
-            <div className="confirmation-detail-item total">
-              <span>Total Paid at Checkout:</span>
-              <strong style={{ color: "var(--primary-light)", fontSize: "1.25rem" }}>
-                ${grandTotal.toLocaleString()}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Reserved Items Table */}
-      <h2 className="checkout-section-title" style={{ marginTop: 32, marginBottom: 16 }}>
-        Reserved Line Items
-      </h2>
-
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Equipment Name</th>
-              <th>Rental Period</th>
-              <th>Qty</th>
-              <th>Rental Cost</th>
-              <th>Security Deposit</th>
-            </tr>
-          </thead>
-          <tbody>
             {order?.items.map((item, idx) => (
-              <tr key={idx}>
-                <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-                  {item.productName}
-                </td>
-                <td>
-                  {item.rentalStart} → {item.rentalEnd}
-                </td>
-                <td>{item.quantity}</td>
-                <td>${item.rentalCost.toLocaleString()}</td>
-                <td style={{ color: "var(--warning)", fontWeight: 600 }}>
-                  ${item.depositTotal.toLocaleString()}
-                </td>
-              </tr>
-            )) ?? (
-              <tr>
-                <td colSpan={5} style={{ textAlign: "center", color: "var(--text-muted)" }}>
-                  No order items found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              <div key={idx} className="checkout-item-mini" style={{ paddingBottom: 12 }}>
+                <div>
+                  <div className="checkout-item-name">{item.productName}</div>
+                  <div className="checkout-item-sub">
+                    ${item.rentalCost.toLocaleString()} ({item.quantity}×)
+                  </div>
+                </div>
+              </div>
+            ))}
 
-      {/* Action Buttons */}
-      <div className="confirmation-actions no-print">
-        <button onClick={handlePrint} className="btn btn-ghost btn-lg">
-          🖨️ Print / Download Invoice
-        </button>
+            <div className="cost-breakdown">
+              <div className="cost-line">
+                <span className="cost-line-label">Rental Period</span>
+                <span className="cost-line-amount" style={{ fontSize: "0.8rem" }}>
+                  {order?.items[0]?.rentalStart || "Today"} to {order?.items[0]?.rentalEnd || "End Date"}
+                </span>
+              </div>
 
-        <Link href="/customer/bookings" className="btn btn-primary btn-lg">
-          View My Bookings
-        </Link>
+              <div className="cost-line">
+                <span className="cost-line-label">Delivery Charges</span>
+                <span className="cost-line-amount">-</span>
+              </div>
 
-        <Link href="/customer" className="btn btn-ghost btn-lg">
-          Back to Equipment Catalog
-        </Link>
+              <div className="cost-line">
+                <span className="cost-line-label">Sub Total</span>
+                <span className="cost-line-amount">${rentalAmount.toLocaleString()}</span>
+              </div>
+
+              <div className="cost-line cost-line-deposit">
+                <span className="cost-line-label">
+                  Security Deposit
+                  <span className="cost-line-detail">🔒 Refundable</span>
+                </span>
+                <span className="cost-line-amount">${depositAmount.toLocaleString()}</span>
+              </div>
+
+              <div className="cost-total">
+                <span>Total</span>
+                <span className="cost-total-amount">${grandTotal.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="confirmation-actions no-print" style={{ marginTop: 16 }}>
+              <Link href="/customer/bookings" className="btn btn-primary btn-block">
+                View My Orders
+              </Link>
+              <Link href="/customer" className="btn btn-ghost btn-block" style={{ fontSize: "0.85rem" }}>
+                Back to Products
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

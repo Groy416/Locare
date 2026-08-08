@@ -47,12 +47,16 @@ export function calculateRentalUnits(
   const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 
   switch (unit) {
+    case "hour":
+      return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60)));
     case "day":
       return diffDays;
     case "week":
       return Math.max(1, Math.ceil(diffDays / 7));
     case "month":
       return Math.max(1, Math.ceil(diffDays / 30));
+    default:
+      return diffDays;
   }
 }
 

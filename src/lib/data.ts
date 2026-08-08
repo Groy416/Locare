@@ -6,18 +6,28 @@
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type RentalUnit = "day" | "week" | "month";
+export type RentalUnit = "hour" | "day" | "week" | "month";
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  options: string[];
+}
 
 export interface Product {
   id: string;
   name: string;
   description: string;
   category: string;
+  brand?: string;
   image: string; // placeholder path
   rentalUnit: RentalUnit;
   price: number; // per rental unit
   securityDeposit: number; // fixed deposit amount
   inStock: number;
+  colorSwatches?: string[]; // hex colors for cards
+  sizeVariantNote?: string; // e.g. "36, 42 & 55 inch TV"
+  variants?: ProductVariant[];
 }
 
 export type RentalStatus = "booked" | "active" | "returned" | "overdue";
@@ -54,99 +64,135 @@ export const lateFeeConfig: LateFeeConfig = {
 export const products: Product[] = [
   {
     id: "prod-001",
-    name: "Pressure Washer Pro 3000",
-    description:
-      "Industrial-grade pressure washer, 3000 PSI. Perfect for driveways, decks, and exterior walls.",
-    category: "Cleaning Equipment",
-    image: "/images/pressure-washer.jpg",
-    rentalUnit: "day",
-    price: 75,
-    securityDeposit: 200,
-    inStock: 4,
+    name: "3-Seater Comfort Sofa",
+    description: "Plush fabric 3-seater living room sofa. Available in multiple color options.",
+    category: "Furniture",
+    brand: "Ashley",
+    image: "/images/sofa.jpg",
+    rentalUnit: "month",
+    price: 45,
+    securityDeposit: 150,
+    inStock: 5,
+    colorSwatches: ["#2563eb", "#f59e0b", "#475569"],
+    variants: [
+      { id: "color", name: "Color", options: ["Blue", "Master", "Charcoal"] },
+    ],
   },
   {
     id: "prod-002",
-    name: "Excavator Mini 1.5T",
-    description:
-      "Compact mini excavator ideal for landscaping, trenching, and small demolition jobs.",
-    category: "Heavy Equipment",
-    image: "/images/excavator.jpg",
-    rentalUnit: "day",
-    price: 350,
-    securityDeposit: 1500,
-    inStock: 2,
+    name: "Ergonomic Executive Office Desk",
+    description: "Solid wood executive office desk with cable management and storage drawers.",
+    category: "Furniture",
+    brand: "IKEA",
+    image: "/images/desk.jpg",
+    rentalUnit: "month",
+    price: 35,
+    securityDeposit: 100,
+    inStock: 0, // Out of stock matching wireframe
+    colorSwatches: ["#78350f", "#1e293b"],
   },
   {
     id: "prod-003",
-    name: "Scaffolding Tower Set",
-    description:
-      "Aluminium scaffold tower, 6m working height. Includes platform, guardrails, and outriggers.",
-    category: "Access Equipment",
-    image: "/images/scaffolding.jpg",
-    rentalUnit: "week",
-    price: 220,
-    securityDeposit: 500,
-    inStock: 6,
+    name: "Solid Oak Dining Table Set",
+    description: "Premium oak dining table with 4 matching padded chairs.",
+    category: "Furniture",
+    brand: "Ashley",
+    image: "/images/dining.jpg",
+    rentalUnit: "month",
+    price: 60,
+    securityDeposit: 200,
+    inStock: 3,
+    colorSwatches: ["#78350f"],
   },
   {
     id: "prod-004",
-    name: 'Concrete Mixer 9 cu ft',
-    description:
-      "Portable concrete mixer with electric motor. Mixes up to 9 cubic feet per batch.",
-    category: "Construction",
-    image: "/images/concrete-mixer.jpg",
+    name: "Smart 4K Ultra HD LED TV",
+    description: "Crystal clear 4K Smart TV with HDR10+ and built-in streaming apps.",
+    category: "Electronics",
+    brand: "Sony",
+    image: "/images/tv.jpg",
     rentalUnit: "day",
-    price: 95,
+    price: 25,
     securityDeposit: 300,
-    inStock: 3,
+    inStock: 4,
+    sizeVariantNote: "36, 42 & 55 inch TV",
+    colorSwatches: ["#0284c7", "#f59e0b"],
+    variants: [
+      { id: "size", name: "Screen Size", options: ["36 inch", "42 inch", "55 inch"] },
+      { id: "color", name: "Frame Color", options: ["Midnight Black", "Silver Aluminum"] },
+    ],
   },
   {
     id: "prod-005",
-    name: "Projector 4K Ultra",
-    description:
-      "4K laser projector with 5000 lumens. Great for events, conferences, and outdoor screenings.",
-    category: "AV Equipment",
-    image: "/images/projector.jpg",
+    name: "Desktop Workstation PC Pro",
+    description: "High-performance desktop PC for design, video editing, and office workstation use.",
+    category: "Computers",
+    brand: "Dell",
+    image: "/images/pc.jpg",
     rentalUnit: "day",
-    price: 120,
-    securityDeposit: 400,
-    inStock: 5,
+    price: 30,
+    securityDeposit: 350,
+    inStock: 6,
   },
   {
     id: "prod-006",
-    name: "Party Tent 20x40 ft",
-    description:
-      "Large white party tent with sidewalls. Seats up to 100 guests comfortably.",
-    category: "Events",
-    image: "/images/party-tent.jpg",
+    name: "Pro Laptop 15.6 inch SSD",
+    description: "Ultra-slim 15.6-inch laptop with Intel i7, 16GB RAM, and 512GB SSD.",
+    category: "Computers",
+    brand: "Dell",
+    image: "/images/laptop.jpg",
     rentalUnit: "day",
-    price: 250,
-    securityDeposit: 600,
-    inStock: 3,
+    price: 20,
+    securityDeposit: 250,
+    inStock: 8,
   },
   {
     id: "prod-007",
-    name: "Generator 7500W",
-    description:
-      "Portable gasoline generator, 7500W peak power. Ideal for job sites and emergency backup.",
-    category: "Power Equipment",
-    image: "/images/generator.jpg",
-    rentalUnit: "day",
-    price: 85,
-    securityDeposit: 350,
-    inStock: 4,
+    name: "PlayStation 5 Console Bundle",
+    description: "PS5 disc edition console with dual controllers and 2 game titles.",
+    category: "Gaming",
+    brand: "Sony",
+    image: "/images/ps5.jpg",
+    rentalUnit: "hour",
+    price: 5,
+    securityDeposit: 400,
+    inStock: 2,
   },
   {
     id: "prod-008",
-    name: "Aerial Lift 40 ft",
-    description:
-      "Telescopic boom lift with 40 ft working height. For exterior painting, tree work, and signage.",
-    category: "Access Equipment",
-    image: "/images/aerial-lift.jpg",
+    name: "King Size Velvet Bed Frame",
+    description: "Upholstered king size bed frame with wooden slats and headboard.",
+    category: "Furniture",
+    brand: "IKEA",
+    image: "/images/bed.jpg",
+    rentalUnit: "month",
+    price: 70,
+    securityDeposit: 250,
+    inStock: 3,
+  },
+  {
+    id: "prod-009",
+    name: "Studio Sound Speakers System",
+    description: "High-fidelity studio monitor speakers with Bluetooth and optical input.",
+    category: "Audio",
+    brand: "Sony",
+    image: "/images/speaker.jpg",
     rentalUnit: "day",
-    price: 425,
-    securityDeposit: 2000,
-    inStock: 1,
+    price: 18,
+    securityDeposit: 120,
+    inStock: 5,
+  },
+  {
+    id: "prod-010",
+    name: "4K DSLR Cinema Camera Kit",
+    description: "Professional 4K DSLR camera with 24-70mm lens, tripod, and memory cards.",
+    category: "Cameras",
+    brand: "Canon",
+    image: "/images/camera.jpg",
+    rentalUnit: "hour",
+    price: 8,
+    securityDeposit: 500,
+    inStock: 3,
   },
 ];
 

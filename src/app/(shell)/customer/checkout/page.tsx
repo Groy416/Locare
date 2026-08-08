@@ -10,7 +10,10 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalRentalCost, totalDeposit, grandTotal, clearCart } = useCart();
 
-  // ─── Form State ────────────────────────────────────────────────────────
+  // Step state: 'address' (Step 1) | 'payment' (Step 2)
+  const [currentStep, setCurrentStep] = useState<"address" | "payment">("address");
+
+  // Form State
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("delivery");
   const [name, setName] = useState("Alex Morgan");
   const [email, setEmail] = useState("alex.morgan@example.com");
@@ -18,12 +21,14 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("742 Evergreen Terrace");
   const [city, setCity] = useState("Springfield");
   const [zip, setZip] = useState("97477");
+  const [sameBillingAddress, setSameBillingAddress] = useState(true);
 
   // Payment State
   const [cardName, setCardName] = useState("Alex Morgan");
   const [cardNumber, setCardNumber] = useState("4532 8912 3456 7890");
   const [cardExpiry, setCardExpiry] = useState("12/28");
   const [cardCvc, setCardCvc] = useState("432");
+  const [savePaymentDetails, setSavePaymentDetails] = useState(true);
 
   // Validation State
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,52 +48,35 @@ export default function CheckoutPage() {
     );
   }
 
-  // ─── Format Card Input Helpers ─────────────────────────────────────────
   const handleCardNumberChange = (val: string) => {
     const digitsOnly = val.replace(/\D/g, "").slice(0, 16);
     const formatted = digitsOnly.replace(/(.{4})/g, "$1 ").trim();
     setCardNumber(formatted);
   };
 
-  const handleExpiryChange = (val: string) => {
-    const digitsOnly = val.replace(/\D/g, "").slice(0, 4);
-    if (digitsOnly.length >= 3) {
-      setCardExpiry(`${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`);
-    } else {
-      setCardExpiry(digitsOnly);
-    }
-  };
-
-  const handleCvcChange = (val: string) => {
-    setCardCvc(val.replace(/\D/g, "").slice(0, 4));
-  };
-
-  // ─── Form Submission & Validation ──────────────────────────────────────
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
+  const handleNextToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) newErrors.name = "Full name is required";
+    if (!name.trim()) newErrors.name = "Name is required";
     if (!email.trim() || !email.includes("@")) newErrors.email = "Valid email is required";
-    if (!phone.trim()) newErrors.phone = "Phone number is required";
+    if (deliveryMethod === "delivery" && !address.trim()) newErrors.address = "Address is required";
 
-    if (deliveryMethod === "delivery") {
-      if (!address.trim()) newErrors.address = "Street address is required";
-      if (!city.trim()) newErrors.city = "City is required";
-      if (!zip.trim()) newErrors.zip = "ZIP code is required";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
     }
+
+    setErrors({});
+    setCurrentStep("payment");
+  };
+
+  const handleFinalPaySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
 
     if (!cardName.trim()) newErrors.cardName = "Cardholder name is required";
-    const rawCardDigits = cardNumber.replace(/\s/g, "");
-    if (rawCardDigits.length !== 16) {
-      newErrors.cardNumber = "Card number must be 16 digits";
-    }
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) {
-      newErrors.cardExpiry = "Expiry must be MM/YY format";
-    }
-    if (cardCvc.length < 3) {
-      newErrors.cardCvc = "CVC must be 3 or 4 digits";
-    }
+    if (cardNumber.replace(/\s/g, "").length !== 16) newErrors.cardNumber = "Card number must be 16 digits";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -103,7 +91,6 @@ export default function CheckoutPage() {
         ? `${address}, ${city}, ${zip}`
         : "Store Pickup: 100 Main Street, Warehouse B";
 
-    // Simulate payment processing delay
     setTimeout(() => {
       const order = createOrder(
         {
@@ -123,286 +110,295 @@ export default function CheckoutPage() {
 
   return (
     <div className="page-shell animate-fade-in">
-      <nav className="breadcrumb">
-        <Link href="/customer/cart" className="breadcrumb-link">
-          ← Back to Cart
-        </Link>
+      {/* Wireframe Step Breadcrumbs (Image 3) */}
+      <nav className="checkout-breadcrumbs">
+        <span className="checkout-breadcrumb-item">Breadcrumb</span>
+        <span>&gt;</span>
+        <span className="checkout-breadcrumb-item">Order</span>
+        <span>&gt;</span>
+        <span className={`checkout-breadcrumb-item ${currentStep === "address" ? "active" : ""}`}>
+          Address
+        </span>
+        <span>&gt;</span>
+        <span className={`checkout-breadcrumb-item ${currentStep === "payment" ? "active" : ""}`}>
+          Payment
+        </span>
       </nav>
 
-      <h1 className="page-title">Checkout</h1>
-      <p className="page-subtitle">
-        Select fulfillment method, enter details, and complete your reservation.
-      </p>
+      <div className="checkout-layout">
+        {/* Main Column */}
+        <div className="checkout-main">
+          {currentStep === "address" ? (
+            /* ─── Step 1: Address & Delivery Method (Image 3 Wireframe Left) ─── */
+            <form onSubmit={handleNextToPayment} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div className="card checkout-section">
+                <h2 className="checkout-section-title">Delivery Method</h2>
+                <div className="fulfillment-toggle">
+                  <button
+                    type="button"
+                    className={`fulfillment-option ${deliveryMethod === "delivery" ? "active" : ""}`}
+                    onClick={() => setDeliveryMethod("delivery")}
+                  >
+                    <span className="fulfillment-icon">🚚</span>
+                    <div style={{ flex: 1 }}>
+                      <strong>Standard Delivery</strong>
+                      <p>Standard jobsite or home delivery</p>
+                    </div>
+                    <span style={{ fontWeight: 700, color: "var(--success)" }}>Free</span>
+                  </button>
 
-      <form onSubmit={handleCheckoutSubmit}>
-        <div className="checkout-layout">
-          {/* Main Form Area */}
-          <div className="checkout-main">
-            {/* ─── 1. Delivery Method Toggle ─────────────────────────── */}
-            <div className="card checkout-section">
-              <h2 className="checkout-section-title">1. Fulfillment Method</h2>
-
-              <div className="fulfillment-toggle">
-                <button
-                  type="button"
-                  className={`fulfillment-option ${
-                    deliveryMethod === "delivery" ? "active" : ""
-                  }`}
-                  onClick={() => setDeliveryMethod("delivery")}
-                >
-                  <span className="fulfillment-icon">🚚</span>
-                  <div>
-                    <strong>Deliver to me</strong>
-                    <p>Standard jobsite or residential delivery</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className={`fulfillment-option ${
-                    deliveryMethod === "pickup" ? "active" : ""
-                  }`}
-                  onClick={() => setDeliveryMethod("pickup")}
-                >
-                  <span className="fulfillment-icon">🏪</span>
-                  <div>
-                    <strong>Collect from store</strong>
-                    <p>Pick up at Central Depot Warehouse</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* ─── 2. Contact & Address Details ──────────────────────── */}
-            <div className="card checkout-section">
-              <h2 className="checkout-section-title">
-                2. Contact & {deliveryMethod === "delivery" ? "Delivery Address" : "Pickup Details"}
-              </h2>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="cust-name">
-                    Full Name
-                  </label>
-                  <input
-                    id="cust-name"
-                    type="text"
-                    className={`form-input ${errors.name ? "input-error" : ""}`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                  {errors.name && <span className="field-error">{errors.name}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="cust-email">
-                    Email Address
-                  </label>
-                  <input
-                    id="cust-email"
-                    type="email"
-                    className={`form-input ${errors.email ? "input-error" : ""}`}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  {errors.email && <span className="field-error">{errors.email}</span>}
+                  <button
+                    type="button"
+                    className={`fulfillment-option ${deliveryMethod === "pickup" ? "active" : ""}`}
+                    onClick={() => setDeliveryMethod("pickup")}
+                  >
+                    <span className="fulfillment-icon">🏪</span>
+                    <div style={{ flex: 1 }}>
+                      <strong>Pick up from Store</strong>
+                      <p>Pick up at Central Depot Warehouse</p>
+                    </div>
+                    <span style={{ fontWeight: 700, color: "var(--success)" }}>Free</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="cust-phone">
-                  Phone Number
-                </label>
-                <input
-                  id="cust-phone"
-                  type="tel"
-                  className={`form-input ${errors.phone ? "input-error" : ""}`}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-                {errors.phone && <span className="field-error">{errors.phone}</span>}
-              </div>
+              {/* Delivery Address Card with Main Address badge & edit icon */}
+              <div className="card checkout-section">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h2 className="checkout-section-title">Delivery Address</h2>
+                  <span className="main-address-badge">Main Address</span>
+                </div>
 
-              {deliveryMethod === "delivery" ? (
-                <>
+                <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="cust-address">
-                      Street Address
-                    </label>
+                    <label className="form-label">Customer Name</label>
                     <input
-                      id="cust-address"
                       type="text"
-                      className={`form-input ${errors.address ? "input-error" : ""}`}
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
+                      className={`form-input ${errors.name ? "input-error" : ""}`}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                     />
-                    {errors.address && <span className="field-error">{errors.address}</span>}
                   </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="cust-city">
-                        City
-                      </label>
-                      <input
-                        id="cust-city"
-                        type="text"
-                        className={`form-input ${errors.city ? "input-error" : ""}`}
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                      />
-                      {errors.city && <span className="field-error">{errors.city}</span>}
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="cust-zip">
-                        ZIP / Postal Code
-                      </label>
-                      <input
-                        id="cust-zip"
-                        type="text"
-                        className={`form-input ${errors.zip ? "input-error" : ""}`}
-                        value={zip}
-                        onChange={(e) => setZip(e.target.value)}
-                      />
-                      {errors.zip && <span className="field-error">{errors.zip}</span>}
-                    </div>
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className={`form-input ${errors.email ? "input-error" : ""}`}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                   </div>
-                </>
-              ) : (
-                <div className="pickup-info-box">
-                  📍 <strong>Pickup Depot Address:</strong> 100 Main Street, Warehouse B, Springfield, OR 97477. Open Mon–Sat 7:00 AM – 6:00 PM.
-                </div>
-              )}
-            </div>
-
-            {/* ─── 3. Fake Payment Form ──────────────────────────────── */}
-            <div className="card checkout-section">
-              <div className="payment-header">
-                <h2 className="checkout-section-title">3. Payment Information</h2>
-                <span className="simulated-badge">⚡ Demo Payment (Simulated)</span>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="card-name">
-                  Name on Card
-                </label>
-                <input
-                  id="card-name"
-                  type="text"
-                  className={`form-input ${errors.cardName ? "input-error" : ""}`}
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                />
-                {errors.cardName && <span className="field-error">{errors.cardName}</span>}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="card-number">
-                  Card Number
-                </label>
-                <input
-                  id="card-number"
-                  type="text"
-                  className={`form-input ${errors.cardNumber ? "input-error" : ""}`}
-                  placeholder="4532 0000 0000 0000"
-                  value={cardNumber}
-                  onChange={(e) => handleCardNumberChange(e.target.value)}
-                />
-                {errors.cardNumber && <span className="field-error">{errors.cardNumber}</span>}
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="card-expiry">
-                    Expiry Date (MM/YY)
-                  </label>
-                  <input
-                    id="card-expiry"
-                    type="text"
-                    className={`form-input ${errors.cardExpiry ? "input-error" : ""}`}
-                    placeholder="12/28"
-                    value={cardExpiry}
-                    onChange={(e) => handleExpiryChange(e.target.value)}
-                  />
-                  {errors.cardExpiry && <span className="field-error">{errors.cardExpiry}</span>}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="card-cvc">
-                    CVC Code
-                  </label>
-                  <input
-                    id="card-cvc"
-                    type="text"
-                    className={`form-input ${errors.cardCvc ? "input-error" : ""}`}
-                    placeholder="432"
-                    value={cardCvc}
-                    onChange={(e) => handleCvcChange(e.target.value)}
-                  />
-                  {errors.cardCvc && <span className="field-error">{errors.cardCvc}</span>}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Summary */}
-          <div className="checkout-sidebar">
-            <div className="booking-card">
-              <h2 className="booking-card-title">Order Items</h2>
-
-              <div className="checkout-items-mini">
-                {items.map((item) => (
-                  <div key={item.product.id} className="checkout-item-mini">
-                    <div>
-                      <div className="checkout-item-name">{item.product.name}</div>
-                      <div className="checkout-item-sub">
-                        {item.quantity}× • {item.rentalStart} → {item.rentalEnd} (
-                        {formatRentalUnit(item.product.rentalUnit, item.rentalUnits)})
+                {deliveryMethod === "delivery" && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">Street Address</label>
+                      <input
+                        type="text"
+                        className={`form-input ${errors.address ? "input-error" : ""}`}
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">City</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">ZIP Code</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={zip}
+                          onChange={(e) => setZip(e.target.value)}
+                        />
                       </div>
                     </div>
-                    <div className="checkout-item-price">
-                      ${item.rentalCost.toLocaleString()}
+                  </>
+                )}
+              </div>
+
+              {/* Wireframe Billing Address Toggle Switch */}
+              <div className="card checkout-section">
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <input
+                    type="checkbox"
+                    id="billing-toggle"
+                    checked={sameBillingAddress}
+                    onChange={(e) => setSameBillingAddress(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--primary)" }}
+                  />
+                  <label htmlFor="billing-toggle" style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    <strong>Billing Address:</strong> If enabled, it will make Billing and Delivery address the same
+                  </label>
+                </div>
+              </div>
+            </form>
+          ) : (
+            /* ─── Step 2: Payment Method (Image 3 Wireframe Right) ───────────── */
+            <form onSubmit={handleFinalPaySubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div className="card checkout-section">
+                <div className="payment-header">
+                  <h2 className="checkout-section-title">Payment Method</h2>
+                  <span className="simulated-badge">⚡ Demo Payment</span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Card Details</label>
+                  <input
+                    type="text"
+                    className={`form-input ${errors.cardNumber ? "input-error" : ""}`}
+                    placeholder="XXXX XXXX XXXX XXXX"
+                    value={cardNumber}
+                    onChange={(e) => handleCardNumberChange(e.target.value)}
+                  />
+                  {errors.cardNumber && <span className="field-error">{errors.cardNumber}</span>}
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Expiry (MM/YY)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">CVC</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={cardCvc}
+                      onChange={(e) => setCardCvc(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Wireframe checkbox: ☐ Save my payment details */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    id="save-card"
+                    checked={savePaymentDetails}
+                    onChange={(e) => setSavePaymentDetails(e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: "var(--primary)" }}
+                  />
+                  <label htmlFor="save-card" style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    Save my payment details
+                  </label>
+                </div>
+              </div>
+
+              {/* Delivery & Billing Summary Card with Edit button ✏️ */}
+              <div className="card checkout-section">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h2 className="checkout-section-title">Delivery & Billing Summary</h2>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setCurrentStep("address")}
+                  >
+                    ✏️ Edit
+                  </button>
+                </div>
+
+                <div style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
+                  <strong>{name}</strong>
+                  <p style={{ color: "var(--text-secondary)", marginTop: 4 }}>
+                    {deliveryMethod === "delivery" ? `${address}, ${city}, ${zip}` : "Store Pickup"}
+                  </p>
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Sidebar Summary */}
+        <div className="checkout-sidebar">
+          <div className="booking-card">
+            <h2 className="booking-card-title">Order Summary</h2>
+
+            <div className="checkout-items-mini">
+              {items.map((item) => (
+                <div key={item.product.id} className="checkout-item-mini">
+                  <div>
+                    <div className="checkout-item-name">{item.product.name}</div>
+                    <div className="checkout-item-sub">
+                      {item.quantity}× • {formatRentalUnit(item.product.rentalUnit, item.rentalUnits)}
                     </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="cost-breakdown">
-                <div className="cost-line">
-                  <span className="cost-line-label">Rental Subtotal</span>
-                  <span className="cost-line-amount">${totalRentalCost.toLocaleString()}</span>
+                  <div className="checkout-item-price">${item.rentalCost.toLocaleString()}</div>
                 </div>
-
-                <div className="cost-line cost-line-deposit">
-                  <span className="cost-line-label">
-                    Security Deposit
-                    <span className="cost-line-detail">🔒 Refundable on return</span>
-                  </span>
-                  <span className="cost-line-amount">${totalDeposit.toLocaleString()}</span>
-                </div>
-
-                <div className="cost-total">
-                  <span>Grand Total Due</span>
-                  <span className="cost-total-amount">${grandTotal.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary btn-block btn-lg"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Processing Payment..." : `Pay Now ($${grandTotal.toLocaleString()})`}
-              </button>
-
-              <p className="booking-note">
-                🔒 Fake payment simulation — no real card will be charged.
-              </p>
+              ))}
             </div>
+
+            <div className="cost-breakdown">
+              <div className="cost-line">
+                <span className="cost-line-label">Delivery Charges</span>
+                <span className="cost-line-amount">-</span>
+              </div>
+              <div className="cost-line">
+                <span className="cost-line-label">Sub Total</span>
+                <span className="cost-line-amount">${totalRentalCost.toLocaleString()}</span>
+              </div>
+              <div className="cost-line cost-line-deposit">
+                <span className="cost-line-label">
+                  Security Deposit
+                  <span className="cost-line-detail">🔒 Refundable on return</span>
+                </span>
+                <span className="cost-line-amount">${totalDeposit.toLocaleString()}</span>
+              </div>
+              <div className="cost-total">
+                <span>Total</span>
+                <span className="cost-total-amount">${grandTotal.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Wireframe Step Action Buttons */}
+            {currentStep === "address" ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-block btn-lg"
+                  onClick={handleNextToPayment}
+                >
+                  Continued &gt;
+                </button>
+                <Link href="/customer/cart" className="btn btn-ghost btn-block" style={{ textAlign: "center" }}>
+                  &lt; Back to Cart
+                </Link>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-block btn-lg"
+                  onClick={handleFinalPaySubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Processing..." : "Pay Now"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-block"
+                  onClick={() => setCurrentStep("address")}
+                >
+                  &lt; Back to Address
+                </button>
+              </>
+            )}
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

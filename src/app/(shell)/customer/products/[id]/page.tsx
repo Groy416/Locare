@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import type { Product } from "@/lib/data";
+import { products, type Product } from "@/lib/data";
 import { useCart, calculateRentalUnits, formatRentalUnit } from "@/lib/cart-context";
 import ProductIcon from "@/components/ProductIcon";
 
@@ -17,41 +17,26 @@ function getTomorrowString(): string {
   return d.toISOString().split("T")[0];
 }
 
-function getMinEndDate(startDate: string): string {
-  const d = new Date(startDate);
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split("T")[0];
-}
-
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { addItem } = useCart();
   const productId = params.id as string;
+  const product = products.find((p) => p.id === productId);
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // ─── Form state ────────────────────────────────────────────────────────
+  // Form State
   const [rentalStart, setRentalStart] = useState(getTodayString());
   const [rentalEnd, setRentalEnd] = useState(getTomorrowString());
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((products: Product[]) => {
-        const found = products.find((p) => p.id === productId);
-        if (found) setProduct(found);
-      })
-      .catch((err) => console.error("Error fetching product:", err))
-      .finally(() => setLoading(false));
-  }, [productId]);
+  // Configure Variant Modal state
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [selectedVariantOpts, setSelectedVariantOpts] = useState<Record<string, string>>({});
 
-  // ─── Computed costs ────────────────────────────────────────────────────
+  // Computed Cost
   const costBreakdown = useMemo(() => {
     if (!product) return null;
-
     const units = calculateRentalUnits(rentalStart, rentalEnd, product.rentalUnit);
     const rentalCost = product.price * units * quantity;
     const depositTotal = product.securityDeposit * quantity;
@@ -66,16 +51,6 @@ export default function ProductDetailPage() {
     };
   }, [product, rentalStart, rentalEnd, quantity]);
 
-  if (loading) {
-    return (
-      <div className="page-shell animate-fade-in">
-        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)" }}>
-          Loading equipment details...
-        </div>
-      </div>
-    );
-  }
-
   if (!product) {
     return (
       <div className="page-shell animate-fade-in">
@@ -83,14 +58,24 @@ export default function ProductDetailPage() {
           <div className="empty-state-icon">🔍</div>
           <p className="empty-state-text">Product not found</p>
           <Link href="/customer" className="btn btn-primary" style={{ marginTop: 16 }}>
-            Back to Catalog
+            Back to Products
           </Link>
         </div>
       </div>
     );
   }
 
-  const handleAddToCart = () => {
+  // Handle Add to Cart
+  const handleAddToCartClick = () => {
+    if (product.variants && product.variants.length > 0 && Object.keys(selectedVariantOpts).length === 0) {
+      // Open Configure modal pop-up per Image 4 wireframe
+      setShowConfigModal(true);
+    } else {
+      executeAddToCart();
+    }
+  };
+
+  const executeAddToCart = () => {
     if (!costBreakdown) return;
 
     addItem({
@@ -103,76 +88,66 @@ export default function ProductDetailPage() {
       depositTotal: costBreakdown.depositTotal,
     });
 
+    setShowConfigModal(false);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2500);
   };
 
-  const handleStartDateChange = (val: string) => {
-    setRentalStart(val);
-    if (val >= rentalEnd) {
-      const d = new Date(val);
-      d.setDate(d.getDate() + 1);
-      setRentalEnd(d.toISOString().split("T")[0]);
-    }
+  // Express Checkout button directly routes to checkout
+  const handleExpressCheckout = () => {
+    if (!costBreakdown) return;
+    executeAddToCart();
+    router.push("/customer/checkout");
   };
 
-  const maxQuantity = product.inStock;
   const isOutOfStock = product.inStock === 0;
 
   return (
     <div className="page-shell animate-fade-in">
-      {/* Breadcrumb */}
       <nav className="breadcrumb">
         <Link href="/customer" className="breadcrumb-link">
-          ← Back to Catalog
+          ← Back to Products
         </Link>
       </nav>
 
       <div className="detail-layout">
-        {/* ─── Left: Product Info ─────────────────────────────────────── */}
+        {/* Left: Product Media & Specs */}
         <div className="detail-left">
           <ProductIcon category={product.category} size="lg" />
 
           <div className="detail-info">
-            <span className="product-category">{product.category}</span>
+            <span className="product-category">{product.brand} • {product.category}</span>
             <h1 className="detail-title">{product.name}</h1>
             <p className="detail-description">{product.description}</p>
 
-            {/* Quick specs */}
             <div className="detail-specs">
               <div className="detail-spec">
                 <span className="detail-spec-label">Rental Rate</span>
                 <span className="detail-spec-value">
-                  ${product.price}/{product.rentalUnit}
+                  ${product.price} / per {product.rentalUnit}
                 </span>
               </div>
               <div className="detail-spec">
                 <span className="detail-spec-label">Security Deposit</span>
-                <span className="detail-spec-value">
-                  ${product.securityDeposit}
-                </span>
+                <span className="detail-spec-value">${product.securityDeposit}</span>
               </div>
               <div className="detail-spec">
-                <span className="detail-spec-label">Availability</span>
+                <span className="detail-spec-label">Stock Status</span>
                 <span
                   className="detail-spec-value"
-                  style={{
-                    color: product.inStock > 0 ? "var(--success)" : "var(--danger)",
-                  }}
+                  style={{ color: !isOutOfStock ? "var(--success)" : "var(--danger)" }}
                 >
-                  {product.inStock > 0
-                    ? `${product.inStock} unit${product.inStock > 1 ? "s" : ""} available`
-                    : "Out of stock"}
+                  {!isOutOfStock ? `${product.inStock} Available` : "Out of Stock"}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ─── Right: Booking Form ────────────────────────────────────── */}
+        {/* Right: Booking Configuration Form (Image 4 Wireframe) */}
         <div className="detail-right">
           <div className="booking-card">
-            <h2 className="booking-card-title">Configure Your Rental</h2>
+            <h2 className="booking-card-title">Configure Rental Period</h2>
 
             {/* Date Pickers */}
             <div className="form-row">
@@ -186,9 +161,10 @@ export default function ProductDetailPage() {
                   className="form-input"
                   value={rentalStart}
                   min={getTodayString()}
-                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  onChange={(e) => setRentalStart(e.target.value)}
                 />
               </div>
+
               <div className="form-group">
                 <label className="form-label" htmlFor="rental-end">
                   End Date
@@ -198,125 +174,160 @@ export default function ProductDetailPage() {
                   type="date"
                   className="form-input"
                   value={rentalEnd}
-                  min={getMinEndDate(rentalStart)}
+                  min={rentalStart}
                   onChange={(e) => setRentalEnd(e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Duration display */}
             {costBreakdown && (
               <div className="duration-badge">
-                📅 {costBreakdown.unitLabel} rental
+                📅 Duration: {costBreakdown.unitLabel}
               </div>
             )}
 
             {/* Quantity */}
             <div className="form-group">
-              <label className="form-label" htmlFor="quantity">
-                Quantity
-              </label>
+              <label className="form-label">Quantity</label>
               <div className="quantity-control">
                 <button
                   className="quantity-btn"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={quantity <= 1}
-                  aria-label="Decrease quantity"
                 >
                   −
                 </button>
                 <input
-                  id="quantity"
                   type="number"
                   className="quantity-input"
                   value={quantity}
                   min={1}
-                  max={maxQuantity}
+                  max={product.inStock}
                   onChange={(e) =>
-                    setQuantity(
-                      Math.max(1, Math.min(maxQuantity, parseInt(e.target.value) || 1))
-                    )
+                    setQuantity(Math.max(1, Math.min(product.inStock, parseInt(e.target.value) || 1)))
                   }
                 />
                 <button
                   className="quantity-btn"
-                  onClick={() =>
-                    setQuantity((q) => Math.min(maxQuantity, q + 1))
-                  }
-                  disabled={quantity >= maxQuantity}
-                  aria-label="Increase quantity"
+                  onClick={() => setQuantity((q) => Math.min(product.inStock, q + 1))}
+                  disabled={quantity >= product.inStock}
                 >
                   +
                 </button>
               </div>
             </div>
 
-            {/* ─── Cost Breakdown ─────────────────────────────────────── */}
+            {/* Cost Breakdown */}
             {costBreakdown && (
               <div className="cost-breakdown">
-                <div className="cost-breakdown-title">Cost Summary</div>
-
-                {/* Rental Cost */}
                 <div className="cost-line">
-                  <span className="cost-line-label">
-                    Rental Fee
-                    <span className="cost-line-detail">
-                      ${product.price} × {costBreakdown.unitLabel}
-                      {quantity > 1 ? ` × ${quantity}` : ""}
-                    </span>
-                  </span>
-                  <span className="cost-line-amount">
-                    ${costBreakdown.rentalCost.toLocaleString()}
-                  </span>
+                  <span className="cost-line-label">Rental Charges</span>
+                  <span className="cost-line-amount">${costBreakdown.rentalCost.toLocaleString()}</span>
                 </div>
 
-                {/* Security Deposit */}
                 <div className="cost-line cost-line-deposit">
                   <span className="cost-line-label">
                     Security Deposit
-                    <span className="cost-line-detail">
-                      🔒 Refundable
-                      {quantity > 1 ? ` × ${quantity}` : ""}
-                    </span>
+                    <span className="cost-line-detail">🔒 Refundable</span>
                   </span>
-                  <span className="cost-line-amount">
-                    ${costBreakdown.depositTotal.toLocaleString()}
-                  </span>
+                  <span className="cost-line-amount">${costBreakdown.depositTotal.toLocaleString()}</span>
                 </div>
 
-                {/* Total */}
                 <div className="cost-total">
-                  <span>Total Due Now</span>
-                  <span className="cost-total-amount">
-                    ${costBreakdown.grandTotal.toLocaleString()}
-                  </span>
+                  <span>Total Due</span>
+                  <span className="cost-total-amount">${costBreakdown.grandTotal.toLocaleString()}</span>
                 </div>
               </div>
             )}
 
-            {/* Add to Cart */}
-            <button
-              className={`btn btn-primary btn-block btn-lg ${
-                addedToCart ? "btn-success-flash" : ""
-              }`}
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-            >
-              {isOutOfStock
-                ? "Out of Stock"
-                : addedToCart
-                ? "✓ Added to Cart!"
-                : "Add to Cart"}
-            </button>
+            {/* Action Buttons: Add to Cart & Express Checkout (Image 4 Wireframe) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button
+                className={`btn btn-primary btn-block btn-lg ${addedToCart ? "btn-success-flash" : ""}`}
+                onClick={handleAddToCartClick}
+                disabled={isOutOfStock}
+              >
+                {isOutOfStock
+                  ? "Out of Stock"
+                  : addedToCart
+                  ? "✓ Added to Cart!"
+                  : "Add to Cart"}
+              </button>
 
-            {!isOutOfStock && (
-              <p className="booking-note">
-                You won&apos;t be charged yet — review your cart before checkout.
-              </p>
-            )}
+              <button
+                className="btn btn-ghost btn-block"
+                onClick={handleExpressCheckout}
+                disabled={isOutOfStock}
+              >
+                ⚡ Express Checkout
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ─── Configure Variant Modal (Image 4 Wireframe Pop-Up Dialog) ─────── */}
+      {showConfigModal && product.variants && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="modal-header">
+              <h3 className="modal-title">Configure Product Options</h3>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowConfigModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              Please choose your preferred variant options for <strong>{product.name}</strong> before adding to cart.
+            </p>
+
+            {product.variants.map((v) => (
+              <div key={v.id} className="form-group">
+                <label className="form-label">{v.name}</label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {v.options.map((opt) => {
+                    const isSelected = selectedVariantOpts[v.id] === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        className={`btn ${isSelected ? "btn-primary" : "btn-ghost"} btn-sm`}
+                        onClick={() =>
+                          setSelectedVariantOpts((prev) => ({
+                            ...prev,
+                            [v.id]: opt,
+                          }))
+                        }
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+              <button
+                className="btn btn-primary btn-block"
+                onClick={executeAddToCart}
+              >
+                Confirm & Add to Cart
+              </button>
+
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowConfigModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
