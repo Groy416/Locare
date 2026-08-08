@@ -57,9 +57,12 @@ export default function AdminProductsPage() {
         <h1 className="page-title" style={{ margin: 0 }}>
           Products & Inventory
         </h1>
-        <div>
-          <Link href="/admin/products/attributes" className="btn btn-ghost btn-sm" style={{ marginRight: 8 }}>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/products/attributes" className="btn btn-ghost btn-sm">
             Attributes Manager
+          </Link>
+          <Link href="/admin/products/new" className="btn btn-primary btn-sm">
+            + Add Product
           </Link>
         </div>
       </div>

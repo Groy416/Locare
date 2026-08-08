@@ -172,6 +172,38 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
+          {/* Database Administration Section */}
+          <div className="settings-section" style={{ borderTop: "1px solid var(--border)", paddingTop: 20 }}>
+            <h3 className="settings-section-title" style={{ color: "#ef4444" }}>Database Administration</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: 12 }}>
+              Reset all rental orders, products, users, and restore clean initial demo data.
+            </p>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ color: "#ef4444", borderColor: "#ef4444", fontWeight: 700 }}
+              onClick={async () => {
+                if (confirm("Are you sure you want to reset the database and re-seed default demo data?")) {
+                  setSaving(true);
+                  try {
+                    const res = await fetch("/api/reset", { method: "POST" });
+                    if (res.ok) {
+                      setSuccess("Database reset and re-seeded successfully!");
+                    } else {
+                      alert("Database reset failed.");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setSaving(false);
+                  }
+                }
+              }}
+            >
+              🔄 Reset Database & Re-seed Demo Data
+            </button>
+          </div>
+
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? "Saving Settings..." : "Save Configuration"}
           </button>
