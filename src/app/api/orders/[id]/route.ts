@@ -80,6 +80,30 @@ export async function PATCH(
       },
     });
 
+    // If status changed to PICKED_UP or RETURNED, update products
+    if (status === "PICKED_UP") {
+      for (const line of updatedOrder.orderLines) {
+        if (line.productId) {
+          await prisma.product.update({
+            where: { id: line.productId },
+            data: { status: "RENTED" },
+          }).catch((err) => console.error("Failed to update product status to RENTED:", err));
+        }
+      }
+    } else if (status === "RETURNED") {
+      for (const line of updatedOrder.orderLines) {
+        if (line.productId) {
+          await prisma.product.update({
+            where: { id: line.productId },
+            data: {
+              inStock: { increment: line.quantity },
+              status: "AVAILABLE",
+            },
+          }).catch((err) => console.error("Failed to restore product stock on RETURNED:", err));
+        }
+      }
+    }
+
     return NextResponse.json(updatedOrder);
   } catch (error) {
     console.error("PATCH /api/orders/[id] error:", error);

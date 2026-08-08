@@ -140,12 +140,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               >
                 Create Invoice
               </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => handleUpdateStatus("PICKED_UP")}
-              >
-                Pickup
-              </button>
+              {order.status !== "PICKED_UP" && order.status !== "RETURNED" && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ background: "#0284c7", borderColor: "#38bdf8" }}
+                  onClick={() => handleUpdateStatus("PICKED_UP")}
+                >
+                  📦 Process Pick Up
+                </button>
+              )}
+              {order.status !== "RETURNED" && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ background: "#059669", borderColor: "#10b981" }}
+                  onClick={() => handleUpdateStatus("RETURNED")}
+                >
+                  🔄 Process Return
+                </button>
+              )}
+              {order.status === "RETURNED" && (
+                <span className="badge badge-active" style={{ background: "rgba(16,185,129,0.2)", color: "#10b981", fontWeight: 700 }}>
+                  ✓ Returned & Stock Restored
+                </span>
+              )}
             </>
           )}
 
