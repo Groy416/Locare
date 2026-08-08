@@ -4159,3 +4159,68 @@ body {
   animation: floatSmooth 4s ease-in-out infinite;
 }
 
+/* ─── Landing Stats Bar ────────────────────────────────────────────────── */
+
+.lp-stats-bar {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px 0;
+  margin: 32px 0;
+}
+
+[data-theme="light"] .lp-stats-bar {
+  background: rgba(255, 255, 255, 0.85);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.lp-stats-bar__inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.lp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 250ms ease;
+}
+
+.lp-stat:hover {
+  border-color: rgba(124, 204, 25, 0.3);
+  transform: translateY(-2px);
+}
+
+.lp-stat__num {
+  font-size: 1.85rem;
+  font-weight: 800;
+  font-family: var(--font-mono), monospace;
+  color: var(--primary-light);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  display: block;
+}
+
+.lp-stat__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
