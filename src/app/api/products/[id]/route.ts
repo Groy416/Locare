@@ -81,6 +81,39 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid product ID format" }, { status: 400 });
     }
 
+    // Check if product is linked to any active rental order lines
+    const activeRentalLines = await prisma.orderLine.count({
+      where: { productId: numId },
+    });
+
+    if (activeRentalLines > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete product because it is currently linked to an active rental order." },
+        { status: 409 }
+      );
+    }
+
+    // Delete associated variants and product variant attribute values
+    const variants = await prisma.productVariant.findMany({
+      where: { productId: numId },
+      select: { id: true },
+    });
+
+    const variantIds = variants.map((v) => v.id);
+
+    if (variantIds.length > 0) {
+      await prisma.productVariantAttributeValue.deleteMany({
+        where: { variantId: { in: variantIds } },
+      });
+      await prisma.productVariant.deleteMany({
+        where: { productId: numId },
+      });
+    }
+
+    await prisma.productImage.deleteMany({
+      where: { productId: numId },
+    });
+
     await prisma.product.delete({
       where: { id: numId },
     });
@@ -89,10 +122,9 @@ export async function DELETE(
   } catch (error: unknown) {
     console.error("DELETE /api/products/[id] error:", error);
     const err = error as { code?: string; message?: string };
-    // Foreign key constraint violation error code in Prisma is P2003
     if (err.code === "P2003" || (err.message && err.message.includes("Foreign key constraint"))) {
       return NextResponse.json(
-        { error: "Cannot delete a rented item until item is returned" },
+        { error: "Cannot delete product because it is currently linked to an active rental order." },
         { status: 409 }
       );
     }

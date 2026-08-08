@@ -40,7 +40,7 @@ export default function AdminProductsPage() {
       setDeletingId(null);
 
       if (!res.ok) {
-        setErrorMessage(data.error || "Cannot delete a rented item until item is returned");
+        setErrorMessage(data.error || "Cannot delete product because it is currently linked to an active rental order.");
       } else {
         setSuccessMessage("Product deleted successfully");
         setProducts((prev) => prev.filter((p) => p.id !== id));

@@ -10,9 +10,9 @@ function daysFromNow(days: number): string {
 }
 
 async function main() {
-  console.log("Seeding ERP database...");
+  console.log("Seeding ERP database for Prompts 1 & 2...");
 
-  // Clean existing records
+  // Clean existing records in reverse dependency order
   await prisma.invoice.deleteMany();
   await prisma.orderLine.deleteMany();
   await prisma.rentalOrder.deleteMany();
@@ -27,6 +27,13 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.pickupReturnSetting.deleteMany();
   await prisma.lateFeeConfig.deleteMany();
+
+  // Reset SQLite autoincrement sequence counter
+  try {
+    await prisma.$executeRawUnsafe("DELETE FROM sqlite_sequence WHERE name = 'Product';");
+  } catch (e) {
+    // ignore if table doesn't exist yet
+  }
 
   // 1. Seed Settings
   await prisma.pickupReturnSetting.create({
@@ -74,7 +81,7 @@ async function main() {
       passwordHash: vendorPasswordHash,
       role: "vendor",
       companyName: "TechRentals Inc.",
-      productCategory: "AV Equipment & Electronics",
+      productCategory: "Electronics",
       gstNo: "27AABCU9603R1ZN",
     },
   });
@@ -90,464 +97,282 @@ async function main() {
     },
   });
 
-  console.log(`Seeded Users: Admin (${admin.email}), Vendor (${vendor.email}), Customer (${customer.email})`);
-
-  // 3. Seed Product Attributes
-  await prisma.productAttribute.create({
-    data: {
-      id: "attr-001",
-      name: "Brand",
-      displayType: "radio",
-      values: JSON.stringify(["Bosch", "DeWalt", "Makita", "Sony"]),
-    },
-  });
-  await prisma.productAttribute.create({
-    data: {
-      id: "attr-002",
-      name: "Color",
-      displayType: "pills",
-      values: JSON.stringify(["Black", "Yellow", "Blue", "White"]),
-    },
-  });
-
-  // 4. Seed Quotation Templates
-  await prisma.quotationTemplate.create({
-    data: {
-      id: "tmpl-001",
-      name: "Home Rental Furniture",
-      validityDays: 30,
-      paymentTerms: "Immediate Payment",
-      templateLines: JSON.stringify([
-        { productName: "Party Tent 20x40 ft", quantity: 1, unitPrice: 250 },
-      ]),
-    },
-  });
-  await prisma.quotationTemplate.create({
-    data: {
-      id: "tmpl-002",
-      name: "Office Rental Furniture & AV",
-      validityDays: 15,
-      paymentTerms: "15 Days Net",
-      templateLines: JSON.stringify([
-        { productName: "Projector 4K Ultra", quantity: 2, unitPrice: 120 },
-      ]),
-    },
-  });
-
-  // 5. Seed Products
-  const initialProducts = [
-    {
-      id: 1,
-      name: "Pressure Washer Pro 3000",
-      description: "Industrial-grade pressure washer, 3000 PSI. Perfect for driveways, decks, and exterior walls.",
-      category: "Cleaning Equipment",
-      image: "/images/pressure-washer.jpg",
-      rentalUnit: "day",
-      price: 75,
-      securityDeposit: 200,
-      inStock: 4,
-      vendorId: vendor.id,
-    },
-    {
-      id: 2,
-      name: "Excavator Mini 1.5T",
-      description: "Compact mini excavator ideal for landscaping, trenching, and small demolition jobs.",
-      category: "Heavy Equipment",
-      image: "/images/excavator.jpg",
-      rentalUnit: "day",
-      price: 350,
-      securityDeposit: 1500,
-      inStock: 2,
-    },
-    {
-      id: 3,
-      name: "Scaffolding Tower Set",
-      description: "Aluminium scaffold tower, 6m working height. Includes platform, guardrails, and outriggers.",
-      category: "Access Equipment",
-      image: "/images/scaffolding.jpg",
-      rentalUnit: "week",
-      price: 220,
-      securityDeposit: 500,
-      inStock: 6,
-    },
-    {
-      id: 4,
-      name: "Concrete Mixer 9 cu ft",
-      description: "Portable concrete mixer with electric motor. Mixes up to 9 cubic feet per batch.",
-      category: "Construction",
-      image: "/images/concrete-mixer.jpg",
-      rentalUnit: "day",
-      price: 95,
-      securityDeposit: 300,
-      inStock: 3,
-    },
-    {
-      id: 5,
-      name: "Projector 4K Ultra",
-      description: "4K laser projector with 5000 lumens. Great for events, conferences, and outdoor screenings.",
-      category: "AV Equipment",
-      image: "/images/projector.jpg",
-      rentalUnit: "day",
-      price: 120,
-      securityDeposit: 400,
-      inStock: 5,
-      vendorId: vendor.id,
-    },
-    {
-      id: 6,
-      name: "Party Tent 20x40 ft",
-      description: "Large white party tent with sidewalls. Seats up to 100 guests comfortably.",
-      category: "Events",
-      image: "/images/party-tent.jpg",
-      rentalUnit: "day",
-      price: 250,
-      securityDeposit: 600,
-      inStock: 3,
-    },
-    {
-      id: 7,
-      name: "Generator 7500W",
-      description: "Portable gasoline generator, 7500W peak power. Ideal for job sites and emergency backup.",
-      category: "Power Equipment",
-      image: "/images/generator.jpg",
-      rentalUnit: "day",
-      price: 85,
-      securityDeposit: 350,
-      inStock: 4,
-    },
-    {
-      id: 8,
-      name: "Aerial Lift 40 ft",
-      description: "Telescopic boom lift with 40 ft working height. For exterior painting, tree work, and signage.",
-      category: "Access Equipment",
-      image: "/images/aerial-lift.jpg",
-      rentalUnit: "day",
-      price: 425,
-      securityDeposit: 2000,
-      inStock: 1,
-    },
-  ];
-
-  for (const prod of initialProducts) {
-    await prisma.product.create({ data: prod });
-  }
-
-  // 6. Seed Rental Orders matching Wireframes (SO00001, SO00002, etc.)
-  const orderData = [
-    {
-      id: 1,
-      orderNumber: "SO00001",
-      customerId: customer.id,
-      customerName: "Sarah Chen",
-      invoiceAddress: "123 Tech Park, Suite 400",
-      deliveryAddress: "123 Tech Park, Suite 400",
-      rentalStart: daysFromNow(-4),
-      rentalEnd: daysFromNow(3),
-      deliveryMethod: "delivery",
-      status: "CONFIRMED", // Sale Order Confirmed
-      invoiceStatus: "INVOICED",
-      untaxedAmount: 525,
-      taxAmount: 52.5,
-      totalAmount: 577.5,
-      depositAmount: 200,
-      depositStatus: "held",
-      lines: [
-        { productId: 1, quantity: 1, unitPrice: 75, taxPercent: 10, amount: 525 },
-      ],
-    },
-    {
-      id: 2,
-      orderNumber: "SO00002",
-      customerId: customer.id,
-      customerName: "Marcus Johnson",
-      invoiceAddress: "88 Horizon Blvd",
-      deliveryAddress: "88 Horizon Blvd",
-      rentalStart: daysFromNow(-2),
-      rentalEnd: daysFromNow(0),
-      deliveryMethod: "pickup",
-      status: "PICKED_UP", // Picked Up
-      invoiceStatus: "WAITING_TO_INVOICE",
-      untaxedAmount: 240,
-      taxAmount: 24,
-      totalAmount: 264,
-      depositAmount: 400,
-      depositStatus: "held",
-      lines: [
-        { productId: 5, quantity: 1, unitPrice: 120, taxPercent: 10, amount: 240 },
-      ],
-    },
-    {
-      id: 3,
-      orderNumber: "SO00003",
-      customerId: customer.id,
-      customerName: "Priya Patel",
-      invoiceAddress: "45 Industrial Way",
-      deliveryAddress: "45 Industrial Way",
-      rentalStart: daysFromNow(-10),
-      rentalEnd: daysFromNow(-3),
-      deliveryMethod: "delivery",
-      status: "OVERDUE", // Late Return
-      invoiceStatus: "WAITING_TO_INVOICE",
-      untaxedAmount: 2450,
-      taxAmount: 245,
-      totalAmount: 2695,
-      depositAmount: 1500,
-      depositStatus: "held",
-      lateFeeCharged: 135,
-      lines: [
-        { productId: 2, quantity: 1, unitPrice: 350, taxPercent: 10, amount: 2450 },
-      ],
-    },
-    {
-      id: 4,
-      orderNumber: "SO00004",
-      customerId: customer.id,
-      customerName: "David Kim",
-      invoiceAddress: "12 Sunset Ave",
-      deliveryAddress: "12 Sunset Ave",
-      rentalStart: daysFromNow(1),
-      rentalEnd: daysFromNow(3),
-      deliveryMethod: "delivery",
-      status: "QUOTATION_SENT", // Quotation Sent
-      invoiceStatus: "NOTHING_TO_INVOICE",
-      untaxedAmount: 500,
-      taxAmount: 50,
-      totalAmount: 550,
-      depositAmount: 600,
-      depositStatus: "held",
-      lines: [
-        { productId: 6, quantity: 1, unitPrice: 250, taxPercent: 10, amount: 500 },
-      ],
-    },
-    {
-      id: 5,
-      orderNumber: "SO00005",
-      customerId: customer.id,
-      customerName: "Emily Rodriguez",
-      invoiceAddress: "77 Ocean Drive",
-      deliveryAddress: "77 Ocean Drive",
-      rentalStart: daysFromNow(-14),
-      rentalEnd: daysFromNow(-7),
-      deliveryMethod: "pickup",
-      status: "RETURNED", // Returned
-      invoiceStatus: "INVOICED",
-      untaxedAmount: 665,
-      taxAmount: 66.5,
-      totalAmount: 731.5,
-      depositAmount: 300,
-      depositStatus: "refunded",
-      lines: [
-        { productId: 4, quantity: 1, unitPrice: 95, taxPercent: 10, amount: 665 },
-      ],
-    },
-  ];
-
-  for (const ord of orderData) {
-    const { lines, ...orderFields } = ord;
-    const createdOrder = await prisma.rentalOrder.create({ data: orderFields });
-
-    for (const line of lines) {
-      await prisma.orderLine.create({
-        data: {
-          rentalOrderId: createdOrder.id,
-          ...line,
-        },
-      });
-    }
-  }
-
-  // 7. Seed Invoices (INV/2026/0001, etc.)
-  await prisma.invoice.create({
-    data: {
-      id: "inv-001",
-      invoiceNumber: "INV/2026/0001",
-      rentalOrderId: 1,
-      invoiceDate: daysFromNow(-4),
-      status: "POSTED",
-      untaxedAmount: 525,
-      taxAmount: 52.5,
-      totalAmount: 577.5,
-      amountPaid: 577.5,
-    },
-  });
-
-  await prisma.invoice.create({
-    data: {
-      id: "inv-002",
-      invoiceNumber: "INV/2026/0002",
-      rentalOrderId: 5,
-      invoiceDate: daysFromNow(-14),
-      status: "PAID",
-      untaxedAmount: 665,
-      taxAmount: 66.5,
-      totalAmount: 731.5,
-      amountPaid: 731.5,
-    },
-  });
-
-  // ── 8. Seed Categories, Attributes, AttributeValues, Products & Variants ──
-
+  // 3. Seed All 4 Categories
   const catClothing = await prisma.category.create({ data: { name: "Clothing" } });
   const catFootwear = await prisma.category.create({ data: { name: "Footwear" } });
+  const catElectronics = await prisma.category.create({ data: { name: "Electronics" } });
+  const catFurniture = await prisma.category.create({ data: { name: "Furniture" } });
 
-  // Clothing attributes
+  // 4. Seed Category Attributes & Values
+  // ── Clothing Attributes
   const attrCSize = await prisma.attribute.create({ data: { name: "Size", categoryId: catClothing.id } });
   const attrCColor = await prisma.attribute.create({ data: { name: "Color", categoryId: catClothing.id } });
+  const attrCBrand = await prisma.attribute.create({ data: { name: "Brand", categoryId: catClothing.id } });
 
-  // Footwear attributes
-  const attrFSize = await prisma.attribute.create({ data: { name: "Size", categoryId: catFootwear.id } });
-  const attrFBrand = await prisma.attribute.create({ data: { name: "Brand", categoryId: catFootwear.id } });
-
-  // Clothing attribute values
   const [cS, cM, cL, cXL] = await Promise.all([
     prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "S" } }),
     prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "M" } }),
     prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "L" } }),
     prisma.attributeValue.create({ data: { attributeId: attrCSize.id, value: "XL" } }),
   ]);
-  const [cRed, cBlue, cBlack] = await Promise.all([
+  const [cRed, cBlue, cBlack, cWhite, cGreen, cYellow] = await Promise.all([
     prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Red" } }),
     prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Blue" } }),
     prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Black" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "White" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Green" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCColor.id, value: "Yellow" } }),
+  ]);
+  const [cMango, cZara, cHM, cLevis] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrCBrand.id, value: "Mango" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCBrand.id, value: "Zara" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCBrand.id, value: "H&M" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrCBrand.id, value: "Levis" } }),
   ]);
 
-  // Footwear attribute values
-  const [fUK6, fUK7, fUK8, fUK9, fUK10, fUK11] = await Promise.all([
-    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK6" } }),
+  // ── Footwear Attributes
+  const attrFSize = await prisma.attribute.create({ data: { name: "Size", categoryId: catFootwear.id } });
+  const attrFColor = await prisma.attribute.create({ data: { name: "Color", categoryId: catFootwear.id } });
+  const attrFBrand = await prisma.attribute.create({ data: { name: "Brand", categoryId: catFootwear.id } });
+
+  const [fUK7, fUK8, fUK9, fUK10] = await Promise.all([
     prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK7" } }),
     prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK8" } }),
     prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK9" } }),
     prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK10" } }),
-    prisma.attributeValue.create({ data: { attributeId: attrFSize.id, value: "UK11" } }),
   ]);
-  const [fNike, fAdidas] = await Promise.all([
+  const [fBlack, fWhite, fBrown] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrFColor.id, value: "Black" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFColor.id, value: "White" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFColor.id, value: "Brown" } }),
+  ]);
+  const [fNike, fAdidas, fPuma, fReebok] = await Promise.all([
     prisma.attributeValue.create({ data: { attributeId: attrFBrand.id, value: "Nike" } }),
     prisma.attributeValue.create({ data: { attributeId: attrFBrand.id, value: "Adidas" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFBrand.id, value: "Puma" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFBrand.id, value: "Reebok" } }),
   ]);
 
-  // Clothing Product 1: Formal Shirt
-  const shirt = await prisma.product.create({
+  // ── Electronics Attributes
+  const attrESize = await prisma.attribute.create({ data: { name: "Size", categoryId: catElectronics.id } });
+  const attrEColor = await prisma.attribute.create({ data: { name: "Color", categoryId: catElectronics.id } });
+  const attrEBrand = await prisma.attribute.create({ data: { name: "Brand", categoryId: catElectronics.id } });
+
+  const [eCompact, eStandard, ePro] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrESize.id, value: "Compact" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrESize.id, value: "Standard" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrESize.id, value: "Pro" } }),
+  ]);
+  const [eBlack, eSilver, eSpaceGray] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrEColor.id, value: "Black" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrEColor.id, value: "Silver" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrEColor.id, value: "Space Gray" } }),
+  ]);
+  const [eSony, eJBL, eBoat, eDJI] = await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrEBrand.id, value: "Sony" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrEBrand.id, value: "JBL" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrEBrand.id, value: "Boat" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrEBrand.id, value: "DJI" } }),
+  ]);
+
+  // ── Furniture Attributes
+  const attrFurnSize = await prisma.attribute.create({ data: { name: "Size", categoryId: catFurniture.id } });
+  const attrFurnColor = await prisma.attribute.create({ data: { name: "Color", categoryId: catFurniture.id } });
+  const attrFurnBrand = await prisma.attribute.create({ data: { name: "Brand", categoryId: catFurniture.id } });
+
+  await Promise.all([
+    prisma.attributeValue.create({ data: { attributeId: attrFurnSize.id, value: "Single" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnSize.id, value: "Double" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnSize.id, value: "King" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnSize.id, value: "3-Seater" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnColor.id, value: "Brown" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnColor.id, value: "Beige" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnColor.id, value: "Walnut" } }),
+    prisma.attributeValue.create({ data: { attributeId: attrFurnBrand.id, value: "N/A" } }),
+  ]);
+
+  // 5. Seed 5 Initial Products (IDs 1 to 5 for auto-increment sequence demo)
+  const p1 = await prisma.product.create({
     data: {
-      id: 9,
+      id: 1,
+      name: "Pressure Washer Pro 3000",
+      description: "Industrial-grade pressure washer, 3000 PSI.",
+      category: "Electronics",
+      image: "/images/pressure-washer.jpg",
+      rentalUnit: "day",
+      price: 75,
+      securityDeposit: 200,
+      inStock: 4,
+      vendorId: vendor.id,
+      categoryId: catElectronics.id,
+    },
+  });
+
+  const p2 = await prisma.product.create({
+    data: {
+      id: 2,
+      name: "Excavator Mini 1.5T",
+      description: "Compact mini excavator ideal for landscaping.",
+      category: "Electronics",
+      image: "/images/excavator.jpg",
+      rentalUnit: "day",
+      price: 350,
+      securityDeposit: 1500,
+      inStock: 2,
+      categoryId: catElectronics.id,
+    },
+  });
+
+  const p3 = await prisma.product.create({
+    data: {
+      id: 3,
       name: "Formal Dress Shirt",
-      description: "Premium cotton formal shirt available in multiple sizes and colors.",
+      description: "Premium cotton formal shirt by Zara.",
       category: "Clothing",
       image: "/images/placeholder.jpg",
       rentalUnit: "day",
-      price: 8,
+      price: 15,
       securityDeposit: 30,
       inStock: 20,
       categoryId: catClothing.id,
     },
   });
 
-  // Shirt variants: S/Red, M/Blue, L/Black
-  const shirtV1 = await prisma.productVariant.create({ data: { productId: shirt.id, sku: "SHIRT-S-RED", price: 8, stock: 5 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: shirtV1.id, attributeValueId: cS.id },
-    { variantId: shirtV1.id, attributeValueId: cRed.id },
-  ]});
-  const shirtV2 = await prisma.productVariant.create({ data: { productId: shirt.id, sku: "SHIRT-M-BLUE", price: 8, stock: 8 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: shirtV2.id, attributeValueId: cM.id },
-    { variantId: shirtV2.id, attributeValueId: cBlue.id },
-  ]});
-  const shirtV3 = await prisma.productVariant.create({ data: { productId: shirt.id, sku: "SHIRT-L-BLACK", price: 9, stock: 7 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: shirtV3.id, attributeValueId: cL.id },
-    { variantId: shirtV3.id, attributeValueId: cBlack.id },
-  ]});
-
-  // Clothing Product 2: Casual Tee
-  const tee = await prisma.product.create({
+  const p4 = await prisma.product.create({
     data: {
-      id: 10,
+      id: 4,
       name: "Casual Cotton Tee",
-      description: "Comfortable everyday cotton t-shirt for casual wear.",
+      description: "Everyday cotton t-shirt by Levis.",
       category: "Clothing",
       image: "/images/placeholder.jpg",
       rentalUnit: "day",
-      price: 5,
+      price: 10,
       securityDeposit: 15,
       inStock: 30,
       categoryId: catClothing.id,
     },
   });
 
-  const teeV1 = await prisma.productVariant.create({ data: { productId: tee.id, sku: "TEE-M-RED", price: 5, stock: 10 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: teeV1.id, attributeValueId: cM.id },
-    { variantId: teeV1.id, attributeValueId: cRed.id },
-  ]});
-  const teeV2 = await prisma.productVariant.create({ data: { productId: tee.id, sku: "TEE-XL-BLACK", price: 5, stock: 20 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: teeV2.id, attributeValueId: cXL.id },
-    { variantId: teeV2.id, attributeValueId: cBlack.id },
-  ]});
-
-  // Footwear Product 1: Running Shoe
-  const runShoe = await prisma.product.create({
+  const p5 = await prisma.product.create({
     data: {
-      id: 11,
-      name: "Running Shoe",
-      description: "Lightweight performance running shoe with cushioned sole.",
+      id: 5,
+      name: "Running Shoe Pro",
+      description: "Lightweight performance running shoe by Nike.",
       category: "Footwear",
       image: "/images/placeholder.jpg",
       rentalUnit: "day",
-      price: 12,
+      price: 25,
       securityDeposit: 50,
       inStock: 15,
       categoryId: catFootwear.id,
     },
   });
 
-  const runV1 = await prisma.productVariant.create({ data: { productId: runShoe.id, sku: "RUN-UK8-NIKE", price: 12, stock: 5 } });
+  // 6. Seed Product Variants
+  // P3 Variants (Formal Dress Shirt - Zara / Red, Blue)
+  const vP3_1 = await prisma.productVariant.create({ data: { productId: p3.id, sku: "SHIRT-M-RED", price: 15, stock: 10 } });
   await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: runV1.id, attributeValueId: fUK8.id },
-    { variantId: runV1.id, attributeValueId: fNike.id },
-  ]});
-  const runV2 = await prisma.productVariant.create({ data: { productId: runShoe.id, sku: "RUN-UK9-ADIDAS", price: 12, stock: 5 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: runV2.id, attributeValueId: fUK9.id },
-    { variantId: runV2.id, attributeValueId: fAdidas.id },
-  ]});
-  const runV3 = await prisma.productVariant.create({ data: { productId: runShoe.id, sku: "RUN-UK10-NIKE", price: 13, stock: 5 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: runV3.id, attributeValueId: fUK10.id },
-    { variantId: runV3.id, attributeValueId: fNike.id },
+    { variantId: vP3_1.id, attributeValueId: cM.id },
+    { variantId: vP3_1.id, attributeValueId: cRed.id },
+    { variantId: vP3_1.id, attributeValueId: cZara.id },
   ]});
 
-  // Footwear Product 2: Formal Oxford
-  const oxford = await prisma.product.create({
+  const vP3_2 = await prisma.productVariant.create({ data: { productId: p3.id, sku: "SHIRT-L-BLUE", price: 15, stock: 10 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: vP3_2.id, attributeValueId: cL.id },
+    { variantId: vP3_2.id, attributeValueId: cBlue.id },
+    { variantId: vP3_2.id, attributeValueId: cMango.id },
+  ]});
+
+  // P4 Variants (Casual Cotton Tee - Levis / Black, Green)
+  const vP4_1 = await prisma.productVariant.create({ data: { productId: p4.id, sku: "TEE-M-BLACK", price: 10, stock: 15 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: vP4_1.id, attributeValueId: cM.id },
+    { variantId: vP4_1.id, attributeValueId: cBlack.id },
+    { variantId: vP4_1.id, attributeValueId: cLevis.id },
+  ]});
+
+  const vP4_2 = await prisma.productVariant.create({ data: { productId: p4.id, sku: "TEE-L-GREEN", price: 10, stock: 15 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: vP4_2.id, attributeValueId: cL.id },
+    { variantId: vP4_2.id, attributeValueId: cGreen.id },
+    { variantId: vP4_2.id, attributeValueId: cHM.id },
+  ]});
+
+  // P5 Variants (Running Shoe Pro - Nike / White, Black)
+  const vP5_1 = await prisma.productVariant.create({ data: { productId: p5.id, sku: "SHOE-UK8-WHITE", price: 25, stock: 8 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: vP5_1.id, attributeValueId: fUK8.id },
+    { variantId: vP5_1.id, attributeValueId: fWhite.id },
+    { variantId: vP5_1.id, attributeValueId: fNike.id },
+  ]});
+
+  const vP5_2 = await prisma.productVariant.create({ data: { productId: p5.id, sku: "SHOE-UK9-BLACK", price: 25, stock: 7 } });
+  await prisma.productVariantAttributeValue.createMany({ data: [
+    { variantId: vP5_2.id, attributeValueId: fUK9.id },
+    { variantId: vP5_2.id, attributeValueId: fBlack.id },
+    { variantId: vP5_2.id, attributeValueId: fAdidas.id },
+  ]});
+
+  // 7. Seed Rental Orders (Products 1, 2, 3, 5 are rented; Product 4 is UNRENTED!)
+  const order1 = await prisma.rentalOrder.create({
     data: {
-      id: 12,
-      name: "Formal Oxford Shoe",
-      description: "Classic leather Oxford shoe for formal occasions.",
-      category: "Footwear",
-      image: "/images/placeholder.jpg",
-      rentalUnit: "day",
-      price: 15,
-      securityDeposit: 60,
-      inStock: 10,
-      categoryId: catFootwear.id,
+      orderNumber: "SO00001",
+      customerId: customer.id,
+      customerName: "Sarah Chen",
+      rentalStart: daysFromNow(-4),
+      rentalEnd: daysFromNow(3),
+      status: "CONFIRMED",
+      invoiceStatus: "INVOICED",
+      untaxedAmount: 525,
+      taxAmount: 52.5,
+      totalAmount: 577.5,
+      depositAmount: 200,
     },
   });
+  await prisma.orderLine.create({
+    data: { rentalOrderId: order1.id, productId: p1.id, quantity: 1, unitPrice: 75, taxPercent: 10, amount: 525 },
+  });
 
-  const oxV1 = await prisma.productVariant.create({ data: { productId: oxford.id, sku: "OXF-UK7-ADIDAS", price: 15, stock: 4 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: oxV1.id, attributeValueId: fUK7.id },
-    { variantId: oxV1.id, attributeValueId: fAdidas.id },
-  ]});
-  const oxV2 = await prisma.productVariant.create({ data: { productId: oxford.id, sku: "OXF-UK11-NIKE", price: 16, stock: 6 } });
-  await prisma.productVariantAttributeValue.createMany({ data: [
-    { variantId: oxV2.id, attributeValueId: fUK11.id },
-    { variantId: oxV2.id, attributeValueId: fNike.id },
-  ]});
+  const order2 = await prisma.rentalOrder.create({
+    data: {
+      orderNumber: "SO00002",
+      customerId: customer.id,
+      customerName: "Marcus Johnson",
+      rentalStart: daysFromNow(-2),
+      rentalEnd: daysFromNow(0),
+      status: "PICKED_UP",
+      invoiceStatus: "WAITING_TO_INVOICE",
+      untaxedAmount: 250,
+      taxAmount: 25,
+      totalAmount: 275,
+      depositAmount: 50,
+    },
+  });
+  await prisma.orderLine.create({
+    data: { rentalOrderId: order2.id, productId: p5.id, quantity: 1, unitPrice: 25, taxPercent: 10, amount: 250 },
+  });
 
-  // suppress unused variable warnings
-  void cXL; void fUK6;
+  const order3 = await prisma.rentalOrder.create({
+    data: {
+      orderNumber: "SO00003",
+      customerId: customer.id,
+      customerName: "Priya Patel",
+      rentalStart: daysFromNow(-10),
+      rentalEnd: daysFromNow(-3),
+      status: "OVERDUE",
+      invoiceStatus: "WAITING_TO_INVOICE",
+      untaxedAmount: 2450,
+      taxAmount: 245,
+      totalAmount: 2695,
+      depositAmount: 1500,
+    },
+  });
+  await prisma.orderLine.create({
+    data: { rentalOrderId: order3.id, productId: p2.id, quantity: 1, unitPrice: 350, taxPercent: 10, amount: 2450 },
+  });
 
-  console.log("ERP Seeding finished successfully!");
+  console.log("ERP Seeding for Prompts 1 & 2 completed successfully!");
 }
 
 main()
