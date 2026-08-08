@@ -28,7 +28,6 @@ export async function GET() {
       for (const prod of seedProducts) {
         await prisma.product.create({
           data: {
-            id: prod.id,
             name: prod.name,
             description: prod.description,
             category: prod.category,

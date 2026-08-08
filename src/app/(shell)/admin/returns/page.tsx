@@ -229,8 +229,8 @@ export default function AdminReturnsPage() {
                 {/* Action */}
                 <button
                   className="btn btn-primary btn-block"
-                  onClick={() => handleProcessReturn(rental.id)}
-                  disabled={processingId === rental.id}
+                  onClick={() => handleProcessReturn(String(rental.id))}
+                  disabled={processingId === String(rental.id)}
                 >
                   {processingId === rental.id ? "Processing..." : "Process Return & Settle"}
                 </button>

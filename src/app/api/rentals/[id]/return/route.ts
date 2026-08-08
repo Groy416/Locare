@@ -8,11 +8,14 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const numId = parseInt(id, 10);
     const body = await request.json().catch(() => ({}));
     const damageCharge = Number(body.damageCharge) || 0;
 
-    const order = await prisma.rentalOrder.findUnique({
-      where: { id },
+    const order = await prisma.rentalOrder.findFirst({
+      where: !isNaN(numId)
+        ? { OR: [{ id: numId }, { orderNumber: id }] }
+        : { orderNumber: id },
       include: {
         orderLines: {
           include: { product: true },
@@ -41,7 +44,7 @@ export async function POST(
     }
 
     const updatedOrder = await prisma.rentalOrder.update({
-      where: { id },
+      where: { id: order.id },
       data: {
         status: "RETURNED",
         lateFeeCharged: lateFee,

@@ -82,7 +82,7 @@ export async function POST() {
 
     const initialProducts = [
       {
-        id: "prod-001",
+        id: 1,
         name: "Pressure Washer Pro 3000",
         description: "Industrial-grade pressure washer, 3000 PSI. Perfect for driveways, decks, and exterior walls.",
         category: "Cleaning Equipment",
@@ -94,7 +94,7 @@ export async function POST() {
         vendorId: vendor.id,
       },
       {
-        id: "prod-002",
+        id: 2,
         name: "Excavator Mini 1.5T",
         description: "Compact mini excavator ideal for landscaping, trenching, and small demolition jobs.",
         category: "Heavy Equipment",
@@ -105,7 +105,7 @@ export async function POST() {
         inStock: 2,
       },
       {
-        id: "prod-003",
+        id: 3,
         name: "Scaffolding Tower Set",
         description: "Aluminium scaffold tower, 6m working height. Includes platform, guardrails, and outriggers.",
         category: "Access Equipment",
@@ -123,7 +123,7 @@ export async function POST() {
 
     const orderData = [
       {
-        id: "order-001",
+        id: 1,
         orderNumber: "SO00001",
         customerId: customer.id,
         customerName: "Sarah Chen",
@@ -140,7 +140,7 @@ export async function POST() {
         depositAmount: 200,
         depositStatus: "held",
         lines: [
-          { productId: "prod-001", quantity: 1, unitPrice: 75, taxPercent: 10, amount: 525 },
+          { productId: 1, quantity: 1, unitPrice: 75, taxPercent: 10, amount: 525 },
         ],
       },
     ];

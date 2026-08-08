@@ -252,8 +252,8 @@ function CatalogContent() {
             <div className="card-grid stagger-children">
               {paginatedProducts.map((product) => {
                 const isOutOfStock = product.inStock === 0;
-                const isWishlisted = wishlistSet.has(product.id);
-                const skuCode = `REF-${product.id.slice(0, 6).toUpperCase()}`;
+                const isWishlisted = wishlistSet.has(String(product.id));
+                const skuCode = `REF-${String(product.id).slice(0, 6).toUpperCase()}`;
 
                 return (
                   <Link
@@ -276,7 +276,7 @@ function CatalogContent() {
                         {/* Wishlist toggle icon button ♡ */}
                         <button
                           className="btn btn-ghost btn-sm wishlist-tech-btn"
-                          onClick={(e) => toggleWishlist(e, product.id)}
+                          onClick={(e) => toggleWishlist(e, String(product.id))}
                           title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
                         >
                           {isWishlisted ? "♥" : "♡"}

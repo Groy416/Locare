@@ -15,7 +15,7 @@ export interface ProductVariant {
 }
 
 export interface Product {
-  id: string;
+  id: string | number;
   name: string;
   description: string;
   category: string;
@@ -35,8 +35,8 @@ export type DepositStatus = "held" | "refunded" | "partially-deducted";
 export type DeliveryMethod = "pickup" | "delivery";
 
 export interface Rental {
-  id: string;
-  productId: string;
+  id: string | number;
+  productId: string | number;
   customerName: string;
   rentalStart: string; // ISO date string
   rentalEnd: string; // ISO date string
@@ -330,7 +330,7 @@ export function calculateDepositRefund(
 // ─── Orders Store ────────────────────────────────────────────────────────────
 
 export interface OrderItem {
-  productId: string;
+  productId: string | number;
   productName: string;
   quantity: number;
   rentalStart: string;
@@ -429,7 +429,7 @@ export function createOrder(
     rentals.unshift(rentalRecord);
 
     // Update stock in memory
-    const p = getProduct(item.product.id);
+    const p = products.find((prod) => prod.id === item.product.id);
     if (p) {
       p.inStock = Math.max(0, p.inStock - item.quantity);
     }

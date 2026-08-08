@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       taxAmount += lineTax;
 
       formattedLines.push({
-        productId: line.productId,
+        productId: typeof line.productId === "number" ? line.productId : parseInt(line.productId, 10),
         quantity: line.quantity,
         unitPrice: line.unitPrice,
         taxPercent: line.taxPercent || 10,

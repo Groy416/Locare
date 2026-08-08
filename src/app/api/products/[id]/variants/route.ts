@@ -7,8 +7,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const numId = parseInt(id, 10);
     const body = await request.json();
     const { sku, price, stock, attributeValueIds = [] } = body;
+
+    if (isNaN(numId)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    }
 
     if (!sku || price === undefined || stock === undefined) {
       return NextResponse.json(
@@ -17,14 +22,14 @@ export async function POST(
       );
     }
 
-    const product = await prisma.product.findUnique({ where: { id } });
+    const product = await prisma.product.findUnique({ where: { id: numId } });
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     const variant = await prisma.productVariant.create({
       data: {
-        productId: id,
+        productId: numId,
         sku,
         price: parseFloat(price),
         stock: parseInt(stock, 10),

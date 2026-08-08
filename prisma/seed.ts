@@ -137,7 +137,7 @@ async function main() {
   // 5. Seed Products
   const initialProducts = [
     {
-      id: "prod-001",
+      id: 1,
       name: "Pressure Washer Pro 3000",
       description: "Industrial-grade pressure washer, 3000 PSI. Perfect for driveways, decks, and exterior walls.",
       category: "Cleaning Equipment",
@@ -149,7 +149,7 @@ async function main() {
       vendorId: vendor.id,
     },
     {
-      id: "prod-002",
+      id: 2,
       name: "Excavator Mini 1.5T",
       description: "Compact mini excavator ideal for landscaping, trenching, and small demolition jobs.",
       category: "Heavy Equipment",
@@ -160,7 +160,7 @@ async function main() {
       inStock: 2,
     },
     {
-      id: "prod-003",
+      id: 3,
       name: "Scaffolding Tower Set",
       description: "Aluminium scaffold tower, 6m working height. Includes platform, guardrails, and outriggers.",
       category: "Access Equipment",
@@ -171,7 +171,7 @@ async function main() {
       inStock: 6,
     },
     {
-      id: "prod-004",
+      id: 4,
       name: "Concrete Mixer 9 cu ft",
       description: "Portable concrete mixer with electric motor. Mixes up to 9 cubic feet per batch.",
       category: "Construction",
@@ -182,7 +182,7 @@ async function main() {
       inStock: 3,
     },
     {
-      id: "prod-005",
+      id: 5,
       name: "Projector 4K Ultra",
       description: "4K laser projector with 5000 lumens. Great for events, conferences, and outdoor screenings.",
       category: "AV Equipment",
@@ -194,7 +194,7 @@ async function main() {
       vendorId: vendor.id,
     },
     {
-      id: "prod-006",
+      id: 6,
       name: "Party Tent 20x40 ft",
       description: "Large white party tent with sidewalls. Seats up to 100 guests comfortably.",
       category: "Events",
@@ -205,7 +205,7 @@ async function main() {
       inStock: 3,
     },
     {
-      id: "prod-007",
+      id: 7,
       name: "Generator 7500W",
       description: "Portable gasoline generator, 7500W peak power. Ideal for job sites and emergency backup.",
       category: "Power Equipment",
@@ -216,7 +216,7 @@ async function main() {
       inStock: 4,
     },
     {
-      id: "prod-008",
+      id: 8,
       name: "Aerial Lift 40 ft",
       description: "Telescopic boom lift with 40 ft working height. For exterior painting, tree work, and signage.",
       category: "Access Equipment",
@@ -235,7 +235,7 @@ async function main() {
   // 6. Seed Rental Orders matching Wireframes (SO00001, SO00002, etc.)
   const orderData = [
     {
-      id: "order-001",
+      id: 1,
       orderNumber: "SO00001",
       customerId: customer.id,
       customerName: "Sarah Chen",
@@ -252,11 +252,11 @@ async function main() {
       depositAmount: 200,
       depositStatus: "held",
       lines: [
-        { productId: "prod-001", quantity: 1, unitPrice: 75, taxPercent: 10, amount: 525 },
+        { productId: 1, quantity: 1, unitPrice: 75, taxPercent: 10, amount: 525 },
       ],
     },
     {
-      id: "order-002",
+      id: 2,
       orderNumber: "SO00002",
       customerId: customer.id,
       customerName: "Marcus Johnson",
@@ -273,11 +273,11 @@ async function main() {
       depositAmount: 400,
       depositStatus: "held",
       lines: [
-        { productId: "prod-005", quantity: 1, unitPrice: 120, taxPercent: 10, amount: 240 },
+        { productId: 5, quantity: 1, unitPrice: 120, taxPercent: 10, amount: 240 },
       ],
     },
     {
-      id: "order-003",
+      id: 3,
       orderNumber: "SO00003",
       customerId: customer.id,
       customerName: "Priya Patel",
@@ -295,11 +295,11 @@ async function main() {
       depositStatus: "held",
       lateFeeCharged: 135,
       lines: [
-        { productId: "prod-002", quantity: 1, unitPrice: 350, taxPercent: 10, amount: 2450 },
+        { productId: 2, quantity: 1, unitPrice: 350, taxPercent: 10, amount: 2450 },
       ],
     },
     {
-      id: "order-004",
+      id: 4,
       orderNumber: "SO00004",
       customerId: customer.id,
       customerName: "David Kim",
@@ -316,11 +316,11 @@ async function main() {
       depositAmount: 600,
       depositStatus: "held",
       lines: [
-        { productId: "prod-006", quantity: 1, unitPrice: 250, taxPercent: 10, amount: 500 },
+        { productId: 6, quantity: 1, unitPrice: 250, taxPercent: 10, amount: 500 },
       ],
     },
     {
-      id: "order-005",
+      id: 5,
       orderNumber: "SO00005",
       customerId: customer.id,
       customerName: "Emily Rodriguez",
@@ -337,7 +337,7 @@ async function main() {
       depositAmount: 300,
       depositStatus: "refunded",
       lines: [
-        { productId: "prod-004", quantity: 1, unitPrice: 95, taxPercent: 10, amount: 665 },
+        { productId: 4, quantity: 1, unitPrice: 95, taxPercent: 10, amount: 665 },
       ],
     },
   ];
@@ -361,7 +361,7 @@ async function main() {
     data: {
       id: "inv-001",
       invoiceNumber: "INV/2026/0001",
-      rentalOrderId: "order-001",
+      rentalOrderId: 1,
       invoiceDate: daysFromNow(-4),
       status: "POSTED",
       untaxedAmount: 525,
@@ -375,7 +375,7 @@ async function main() {
     data: {
       id: "inv-002",
       invoiceNumber: "INV/2026/0002",
-      rentalOrderId: "order-005",
+      rentalOrderId: 5,
       invoiceDate: daysFromNow(-14),
       status: "PAID",
       untaxedAmount: 665,
@@ -428,7 +428,7 @@ async function main() {
   // Clothing Product 1: Formal Shirt
   const shirt = await prisma.product.create({
     data: {
-      id: "cat-prod-001",
+      id: 9,
       name: "Formal Dress Shirt",
       description: "Premium cotton formal shirt available in multiple sizes and colors.",
       category: "Clothing",
@@ -461,7 +461,7 @@ async function main() {
   // Clothing Product 2: Casual Tee
   const tee = await prisma.product.create({
     data: {
-      id: "cat-prod-002",
+      id: 10,
       name: "Casual Cotton Tee",
       description: "Comfortable everyday cotton t-shirt for casual wear.",
       category: "Clothing",
@@ -488,7 +488,7 @@ async function main() {
   // Footwear Product 1: Running Shoe
   const runShoe = await prisma.product.create({
     data: {
-      id: "cat-prod-003",
+      id: 11,
       name: "Running Shoe",
       description: "Lightweight performance running shoe with cushioned sole.",
       category: "Footwear",
@@ -520,7 +520,7 @@ async function main() {
   // Footwear Product 2: Formal Oxford
   const oxford = await prisma.product.create({
     data: {
-      id: "cat-prod-004",
+      id: 12,
       name: "Formal Oxford Shoe",
       description: "Classic leather Oxford shoe for formal occasions.",
       category: "Footwear",

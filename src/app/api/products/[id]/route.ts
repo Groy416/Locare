@@ -7,8 +7,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const numId = parseInt(id, 10);
+
     const product = await prisma.product.findUnique({
-      where: { id },
+      where: { id: !isNaN(numId) ? numId : undefined },
       include: {
         images: true,
         categoryRef: true,
@@ -64,5 +66,35 @@ export async function GET(
   } catch (error) {
     console.error("GET /api/products/[id] error:", error);
     return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const numId = parseInt(id, 10);
+
+    if (isNaN(numId)) {
+      return NextResponse.json({ error: "Invalid product ID format" }, { status: 400 });
+    }
+
+    await prisma.product.delete({
+      where: { id: numId },
+    });
+
+    return NextResponse.json({ success: true, message: "Product deleted successfully" });
+  } catch (error: any) {
+    console.error("DELETE /api/products/[id] error:", error);
+    // Foreign key constraint violation error code in Prisma is P2003
+    if (error.code === "P2003" || (error.message && error.message.includes("Foreign key constraint"))) {
+      return NextResponse.json(
+        { error: "Cannot delete this product — it has an active or pending rental. It can only be removed after the item is returned." },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
   }
 }

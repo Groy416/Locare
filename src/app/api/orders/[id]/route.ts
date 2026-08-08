@@ -7,8 +7,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const order = await prisma.rentalOrder.findUnique({
-      where: { id },
+    const numId = parseInt(id, 10);
+
+    const order = await prisma.rentalOrder.findFirst({
+      where: !isNaN(numId)
+        ? { OR: [{ id: numId }, { orderNumber: id }] }
+        : { orderNumber: id },
       include: {
         orderLines: {
           include: { product: true },
@@ -37,10 +41,16 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const numId = parseInt(id, 10);
     const body = await request.json();
     const { status, invoiceStatus } = body;
 
-    const existing = await prisma.rentalOrder.findUnique({ where: { id } });
+    const existing = await prisma.rentalOrder.findFirst({
+      where: !isNaN(numId)
+        ? { OR: [{ id: numId }, { orderNumber: id }] }
+        : { orderNumber: id },
+    });
+
     if (!existing) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -60,7 +70,7 @@ export async function PATCH(
     }
 
     const updatedOrder = await prisma.rentalOrder.update({
-      where: { id },
+      where: { id: existing.id },
       data: updateData,
       include: {
         orderLines: {

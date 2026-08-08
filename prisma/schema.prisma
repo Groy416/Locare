@@ -53,7 +53,7 @@ model AttributeValue {
 
 // ─── Product Model ───────────────────────────────────────────────────────────
 model Product {
-  id              String           @id @default(uuid())
+  id              Int              @id @default(autoincrement())
   name            String
   description     String
   category        String
@@ -78,7 +78,7 @@ model Product {
 // ─── ProductImage Model ──────────────────────────────────────────────────────
 model ProductImage {
   id        String  @id @default(cuid())
-  productId String
+  productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
 }
@@ -86,7 +86,7 @@ model ProductImage {
 // ─── ProductVariant Model ─────────────────────────────────────────────────────
 model ProductVariant {
   id              String                         @id @default(cuid())
-  productId       String
+  productId       Int
   product         Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku             String
   price           Float
@@ -97,9 +97,9 @@ model ProductVariant {
 // ─── ProductVariantAttributeValue (join table) ────────────────────────────────
 model ProductVariantAttributeValue {
   variantId        String
-  variant          ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variant          ProductVariant @relation(fields: [variantId], references: [id])
   attributeValueId String
-  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id])
 
   @@id([variantId, attributeValueId])
 }
@@ -127,7 +127,7 @@ model QuotationTemplate {
 // Status: "QUOTATION" | "QUOTATION_SENT" | "CONFIRMED" | "PICKED_UP" | "RETURNED" | "CANCELLED" | "OVERDUE"
 // Invoice Status: "NOTHING_TO_INVOICE" | "WAITING_TO_INVOICE" | "DRAFT_INVOICE" | "POSTED" | "PAID"
 model RentalOrder {
-  id              String      @id @default(uuid())
+  id              Int         @id @default(autoincrement())
   orderNumber     String      @unique // e.g., SO00001
   customerId      String?
   customer        User?       @relation(fields: [customerId], references: [id])
@@ -155,10 +155,10 @@ model RentalOrder {
 // ─── Order Line Model ────────────────────────────────────────────────────────
 model OrderLine {
   id            String      @id @default(uuid())
-  rentalOrderId String
+  rentalOrderId Int
   rentalOrder   RentalOrder @relation(fields: [rentalOrderId], references: [id], onDelete: Cascade)
-  productId     String
-  product       Product     @relation(fields: [productId], references: [id])
+  productId     Int
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
   quantity      Int         @default(1)
   unitPrice     Float
   taxPercent    Float       @default(10)
@@ -170,7 +170,7 @@ model OrderLine {
 model Invoice {
   id            String      @id @default(uuid())
   invoiceNumber String      @unique // e.g., INV/2026/0001
-  rentalOrderId String
+  rentalOrderId Int
   rentalOrder   RentalOrder @relation(fields: [rentalOrderId], references: [id])
   invoiceDate   String
   status        String      @default("DRAFT")

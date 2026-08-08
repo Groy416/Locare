@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/data";
 
 interface DraftLine {
-  productId: string;
+  productId: string | number;
   quantity: number;
   unitPrice: number;
   taxPercent: number;
