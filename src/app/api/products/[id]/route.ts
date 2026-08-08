@@ -91,7 +91,7 @@ export async function DELETE(
     // Foreign key constraint violation error code in Prisma is P2003
     if (error.code === "P2003" || (error.message && error.message.includes("Foreign key constraint"))) {
       return NextResponse.json(
-        { error: "Cannot delete this product — it has an active or pending rental. It can only be removed after the item is returned." },
+        { error: "Cannot delete a rented item until item is returned" },
         { status: 409 }
       );
     }

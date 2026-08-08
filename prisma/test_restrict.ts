@@ -94,7 +94,7 @@ async function runTests() {
     if (error.code === "P2003" || error.message?.includes("Foreign key constraint")) {
       deleteAttemptFailedAsExpected = true;
       responseStatusCode = 409;
-      responseErrorMessage = "Cannot delete this product — it has an active or pending rental. It can only be removed after the item is returned.";
+      responseErrorMessage = "Cannot delete a rented item until item is returned";
     }
   }
 
