@@ -2,11 +2,10 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { signIn, getSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 
 function LoginContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get("redirect");
 
@@ -16,63 +15,42 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const performLogin = async (loginEmail: string, loginPass: string, fallbackTarget: string) => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await signIn("credentials", {
+        email: loginEmail.trim(),
+        password: loginPass.trim(),
+        redirect: false,
+      });
+
+      setLoading(false);
+
+      if (res?.error) {
+        setError("Invalid User ID or Password.");
+      } else {
+        const target = redirectTarget || fallbackTarget;
+        window.location.href = target;
+      }
+    } catch {
+      setLoading(false);
+      setError("An unexpected error occurred during login.");
+    }
+  };
+
   const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
     const cleanEmail = email.trim();
-    const cleanPassword = password.trim();
-
-    const res = await signIn("credentials", {
-      email: cleanEmail,
-      password: cleanPassword,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (res?.error) {
-      setError("Invalid User ID or Password. Please check your credentials.");
-    } else {
-      const session = await getSession();
-      const userRole = (session?.user as { role?: string })?.role;
-
-      if (redirectTarget) {
-        router.push(redirectTarget);
-      } else if (userRole === "admin" || userRole === "vendor") {
-        router.push("/admin");
-      } else {
-        router.push("/customer");
-      }
-    }
+    const fallbackPath = cleanEmail.includes("customer") ? "/customer" : "/admin";
+    await performLogin(email, password, fallbackPath);
   };
 
-  const handleSelectRole = (roleEmail: string, rolePass: string) => {
-    setError("");
+  const handleRoleSelect = (roleEmail: string, rolePass: string, targetPath: string) => {
     setEmail(roleEmail);
     setPassword(rolePass);
-  };
-
-  const handleQuickSignIn = async (userEmail: string, userPass: string, targetPath: string) => {
-    setError("");
-    setEmail(userEmail);
-    setPassword(userPass);
-    setLoading(true);
-
-    const res = await signIn("credentials", {
-      email: userEmail,
-      password: userPass,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (res?.error) {
-      setError(`Quick login failed for ${userEmail}`);
-    } else {
-      router.push(targetPath);
-    }
+    performLogin(roleEmail, rolePass, targetPath);
   };
 
   return (
@@ -90,16 +68,14 @@ function LoginContent() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
           <button
             type="button"
-            className={`btn btn-block ${email === "customer@locare.com" ? "btn-primary" : "btn-ghost"}`}
-            style={
-              email === "customer@locare.com"
-                ? { background: "linear-gradient(135deg, #5B8731, #7CCC19)", fontWeight: 700 }
-                : { border: "1px solid var(--border)", background: "var(--surface)", fontWeight: 600 }
-            }
-            onClick={() => {
-              handleSelectRole("customer@locare.com", "customer123");
-              handleQuickSignIn("customer@locare.com", "customer123", "/customer");
+            className="btn btn-block btn-lg"
+            style={{
+              background: "linear-gradient(135deg, #5B8731, #7CCC19)",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
             }}
+            onClick={() => handleRoleSelect("customer@locare.com", "customer123", "/customer")}
             disabled={loading}
           >
             👤 Sign In as Customer ➔ Customer Portal
@@ -107,16 +83,14 @@ function LoginContent() {
 
           <button
             type="button"
-            className={`btn btn-block ${email === "vendor@locare.com" ? "btn-primary" : "btn-ghost"}`}
-            style={
-              email === "vendor@locare.com"
-                ? { background: "linear-gradient(135deg, #2563EB, #3B82F6)", color: "#fff", fontWeight: 700 }
-                : { border: "1px solid var(--border)", background: "var(--surface)", fontWeight: 600 }
-            }
-            onClick={() => {
-              handleSelectRole("vendor@locare.com", "vendor123");
-              handleQuickSignIn("vendor@locare.com", "vendor123", "/admin");
+            className="btn btn-block btn-lg"
+            style={{
+              background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
             }}
+            onClick={() => handleRoleSelect("vendor@locare.com", "vendor123", "/admin")}
             disabled={loading}
           >
             🏢 Sign In as Vendor ➔ Vendor ERP Dashboard
@@ -124,16 +98,14 @@ function LoginContent() {
 
           <button
             type="button"
-            className={`btn btn-block ${email === "admin@locare.com" ? "btn-primary" : "btn-ghost"}`}
-            style={
-              email === "admin@locare.com"
-                ? { background: "linear-gradient(135deg, #7C3AED, #A855F7)", color: "#fff", fontWeight: 700 }
-                : { border: "1px solid var(--border)", background: "var(--surface)", fontWeight: 600 }
-            }
-            onClick={() => {
-              handleSelectRole("admin@locare.com", "admin123");
-              handleQuickSignIn("admin@locare.com", "admin123", "/admin");
+            className="btn btn-block btn-lg"
+            style={{
+              background: "linear-gradient(135deg, #7C3AED, #6D28D9)",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
             }}
+            onClick={() => handleRoleSelect("admin@locare.com", "admin123", "/admin")}
             disabled={loading}
           >
             🛡️ Sign In as Admin ➔ Admin System
