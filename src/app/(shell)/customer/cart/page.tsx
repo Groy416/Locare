@@ -145,17 +145,7 @@ export default function CartPage() {
             return (
               <div key={product.id} className="cart-item-card card">
                 <div className="cart-item-left">
-                  {product.imageUrl && (product.imageUrl.startsWith("/") || product.imageUrl.startsWith("http")) ? (
-                    <div style={{ width: "100%", height: "140px", overflow: "hidden", borderRadius: "var(--radius-md)" }}>
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.name} 
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-                      />
-                    </div>
-                  ) : (
-                    <ProductIcon category={product.category} size="sm" />
-                  )}
+                  <ProductIcon category={product.category} size="sm" imageUrl={product.imageUrl || product.image} />
                 </div>
 
                 <div className="cart-item-body">

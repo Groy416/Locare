@@ -203,7 +203,7 @@ export default function ProductDetailPage() {
         {/* Left: Product Media & Enlarged Image Display */}
         <div className="detail-left">
           <div className="card product-enlarged-card" style={{ padding: 24, textAlign: "center" }}>
-            {mainImgSrc && (mainImgSrc.startsWith("/") || mainImgSrc.startsWith("http")) && !mainImgSrc.includes("placeholder") ? (
+            {mainImgSrc && mainImgSrc.startsWith("/") && !mainImgSrc.includes("placeholder") ? (
               <img
                 src={mainImgSrc}
                 alt={product.name}
@@ -215,7 +215,7 @@ export default function ProductDetailPage() {
                 }}
               />
             ) : (
-              <ProductIcon category={product.category} size="lg" />
+              <ProductIcon category={product.category} size="lg" imageUrl={product.imageUrl || product.image} />
             )}
 
             {/* Thumbnail selector if multiple images exist */}

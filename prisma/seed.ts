@@ -596,7 +596,53 @@ async function main() {
     data: { rentalOrderId: order3.id, productId: pid3, quantity: 1, unitPrice: 350, taxPercent: 10, amount: 2450 },
   });
 
-  console.log(`\nSeeding complete! ${totalProducts} products + 3 rental orders (active/due-today/overdue).`);
+  // 8. Seed Additional 12 Test Cases (Orders)
+  const additionalNames = [
+    "Alex Johnson", "Maria Garcia", "David Smith", "Linda Lee",
+    "James Wilson", "Robert Taylor", "Jessica Brown", "William Davis",
+    "Emma Miller", "Michael Wilson", "Sophia Anderson", "Daniel Thomas"
+  ];
+  
+  const statusCombos = [
+    { status: "QUOTATION", inv: "NOTHING_TO_INVOICE" },
+    { status: "CONFIRMED", inv: "WAITING_TO_INVOICE" },
+    { status: "PICKED_UP", inv: "WAITING_TO_INVOICE" },
+    { status: "RETURNED", inv: "WAITING_TO_INVOICE" },
+    { status: "RETURNED", inv: "INVOICED" },
+    { status: "OVERDUE", inv: "WAITING_TO_INVOICE" },
+    { status: "CANCELLED", inv: "NOTHING_TO_INVOICE" },
+    { status: "CONFIRMED", inv: "INVOICED" },
+    { status: "PICKED_UP", inv: "INVOICED" },
+    { status: "OVERDUE", inv: "INVOICED" },
+    { status: "RETURNED", inv: "WAITING_TO_INVOICE" },
+    { status: "QUOTATION", inv: "NOTHING_TO_INVOICE" }
+  ];
+
+  for (let i = 0; i < 12; i++) {
+    const pid = i % 2 === 0 ? pid1 : pid2; // fallback to pid1 or pid2
+    const combo = statusCombos[i];
+    const orderNumber = `SO000${(i + 4).toString().padStart(2, "0")}`; // SO00004 to SO00015
+    const order = await prisma.rentalOrder.create({
+      data: {
+        orderNumber,
+        customerId: customer.id,
+        customerName: additionalNames[i],
+        rentalStart: daysFromNow(i - 8),
+        rentalEnd: daysFromNow(i - 3),
+        status: combo.status,
+        invoiceStatus: combo.inv,
+        untaxedAmount: 50 * 5,
+        taxAmount: 50 * 0.5,
+        totalAmount: 50 * 5.5,
+        depositAmount: 100,
+      },
+    });
+    await prisma.orderLine.create({
+      data: { rentalOrderId: order.id, productId: pid, quantity: 1, unitPrice: 50, taxPercent: 10, amount: 250 },
+    });
+  }
+
+  console.log(`\nSeeding complete! ${totalProducts} products + 15 rental orders (active/due-today/overdue + 12 combos).`);
 }
 
 main()

@@ -6,6 +6,7 @@ interface ProductIconProps {
   category: string;
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
+  imageUrl?: string | null;
 }
 
 interface CategoryStyle {
@@ -140,6 +141,7 @@ export default function ProductIcon({
   category,
   size = "md",
   className = "",
+  imageUrl,
 }: ProductIconProps) {
   // Determine matching key or fallback
   const matchingKey = Object.keys(categoryStyles).find((key) =>
@@ -172,18 +174,49 @@ export default function ProductIcon({
         border: "1px solid rgba(255, 255, 255, 0.08)",
       }}
     >
-      {/* Background Technical Grid Pattern overlay */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: `radial-gradient(${styleConfig.accent} 0.75px, transparent 0.75px)`,
-          backgroundSize: "16px 16px",
-          opacity: 0.15,
-        }}
-      />
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={category}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: 0.9,
+            transition: "transform 0.5s ease",
+          }}
+          className="hover:scale-105"
+        />
+      ) : (
+        <>
+          {/* Background Technical Grid Pattern overlay */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `radial-gradient(${styleConfig.accent} 0.75px, transparent 0.75px)`,
+              backgroundSize: "16px 16px",
+              opacity: 0.15,
+            }}
+          />
 
-      {/* Category Code Badge */}
+          {/* Main SVG Graphic */}
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
+              transform: size === "xs" ? "scale(0.5)" : size === "sm" ? "scale(0.85)" : size === "lg" ? "scale(1.3)" : "scale(1)",
+            }}
+          >
+            {styleConfig.icon}
+          </div>
+        </>
+      )}
+
+      {/* Category Code Badge (always on top) */}
       <span
         style={{
           position: "absolute",
@@ -199,23 +232,11 @@ export default function ProductIcon({
           borderRadius: "4px",
           border: `1px solid ${styleConfig.accent}33`,
           backdropFilter: "blur(4px)",
-          zIndex: 1,
+          zIndex: 2,
         }}
       >
         [{category.toUpperCase()}]
       </span>
-
-      {/* Main SVG Graphic */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
-          transform: size === "xs" ? "scale(0.5)" : size === "sm" ? "scale(0.85)" : size === "lg" ? "scale(1.3)" : "scale(1)",
-        }}
-      >
-        {styleConfig.icon}
-      </div>
     </div>
   );
 }

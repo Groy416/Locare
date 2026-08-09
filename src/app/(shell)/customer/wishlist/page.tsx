@@ -256,7 +256,15 @@ export default function WishlistPage() {
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button
                     onClick={() => {
-                      addItem({ id: product.id, name: product.name, price: product.price, rentalUnit: product.rentalUnit, image: getImageSrc(product) });
+                      addItem({
+                        product: product as any,
+                        quantity: 1,
+                        rentalStart: new Date().toISOString().split("T")[0],
+                        rentalEnd: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+                        rentalUnits: 1,
+                        rentalCost: product.price,
+                        depositTotal: product.securityDeposit,
+                      });
                     }}
                     disabled={product.inStock === 0}
                     style={{

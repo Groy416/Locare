@@ -21,6 +21,7 @@ export interface Product {
   category: string;
   brand?: string;
   image: string; // placeholder path
+  imageUrl?: string | null;
   rentalUnit: RentalUnit;
   price: number; // per rental unit
   securityDeposit: number; // fixed deposit amount
