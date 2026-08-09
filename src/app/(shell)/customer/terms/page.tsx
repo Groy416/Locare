@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, FileText, ArrowLeft, Search, CheckCircle, Clock, AlertTriangle, HelpCircle } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
+
+const sectionAccents = ["#5BC8F5", "#F5E642", "#86EFAC", "#C4B5FD", "#FDBA74"];
 
 export default function TermsAndConditionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -10,10 +12,9 @@ export default function TermsAndConditionsPage() {
 
   const termsSections = [
     {
-      id: "rental",
-      category: "rental",
+      id: "rental", category: "rental",
       title: "1. Rental Agreement & Duration Terms",
-      icon: Clock,
+      icon: "📋", accent: "#5BC8F5",
       content: [
         "All rentals booked through Locare are subject to availability and formal order confirmation.",
         "The rental period begins on the agreed 'Rental Start Date' and concludes at the 'Rental End Date' specified in your booking confirmation.",
@@ -22,34 +23,31 @@ export default function TermsAndConditionsPage() {
       ],
     },
     {
-      id: "deposits",
-      category: "deposits",
+      id: "deposits", category: "deposits",
       title: "2. Security Deposit & Refund Policy",
-      icon: ShieldCheck,
+      icon: "🔒", accent: "#F5E642",
       content: [
         "A refundable security deposit is collected at checkout for every rental product to protect against loss or severe damage.",
         "Security deposits are held securely in escrow during the active rental period.",
         "Upon successful return inspection, 100% of the deposit is automatically refunded within 24 to 48 business hours.",
-        "Any applicable late fees or repair charges will be transparently deducted from the security deposit, with remaining balances refunded to the customer.",
+        "Any applicable late fees or repair charges will be transparently deducted from the security deposit, with remaining balances refunded.",
       ],
     },
     {
-      id: "latefees",
-      category: "latefees",
+      id: "latefees", category: "latefees",
       title: "3. Late Return Fines & Grace Period",
-      icon: AlertTriangle,
+      icon: "⚠️", accent: "#FDBA74",
       content: [
         "Items must be returned by 8:00 PM on the scheduled Rental End Date.",
         "A standard 1-day grace period is extended to all customers for unforeseen delays.",
         "After the grace period expires, a late fine (default ₹15 / $15 per day) will accumulate automatically until the item is processed in Admin Returns.",
-        "If an item is unreturned past 14 days without communication, it will be marked as unrecovered, and the full deposit will be forfeited.",
+        "If an item is unreturned past 14 days without communication, it will be marked as unrecovered and the full deposit will be forfeited.",
       ],
     },
     {
-      id: "cancellation",
-      category: "cancellation",
-      title: "4. Cancellation & Booking Modficiations",
-      icon: CheckCircle,
+      id: "cancellation", category: "cancellation",
+      title: "4. Cancellation & Booking Modifications",
+      icon: "🔄", accent: "#86EFAC",
       content: [
         "Bookings cancelled at least 24 hours prior to the Rental Start Date receive a 100% full refund.",
         "Cancellations made within 24 hours of start time may incur a 15% restocking fee.",
@@ -58,118 +56,137 @@ export default function TermsAndConditionsPage() {
     },
   ];
 
-  const filteredSections = termsSections.filter((section) => {
-    const matchesTab = activeTab === "all" || section.category === activeTab;
-    const matchesSearch =
-      searchTerm === "" ||
-      section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      section.content.some((c) => c.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesTab && matchesSearch;
+  const filteredSections = termsSections.filter((s) => {
+    const matchTab = activeTab === "all" || s.category === activeTab;
+    const matchSearch = searchTerm === "" ||
+      s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.content.some((c) => c.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchTab && matchSearch;
   });
 
+  const tabs = [
+    { id: "all", label: "All Policies" },
+    { id: "rental", label: "Rental Terms" },
+    { id: "deposits", label: "Deposits" },
+    { id: "latefees", label: "Late Fines" },
+    { id: "cancellation", label: "Cancellations" },
+  ];
+
   return (
-    <div className="page-shell animate-fade-in max-w-5xl mx-auto px-4 py-8">
-      {/* Top Header & Breadcrumb */}
-      <div className="mb-8">
-        <Link href="/customer" className="inline-flex items-center text-sm font-semibold text-emerald-400 hover:text-emerald-300 mb-4 transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Products
-        </Link>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Terms & Conditions</h1>
-            <p className="text-sm text-slate-400">Last updated: August 2026 • Official Locare Rental Service Agreement</p>
-          </div>
-        </div>
+    <div className="static-page">
+      <Link href="/customer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: 28 }}>
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to Products
+      </Link>
+
+      {/* Hero */}
+      <div className="static-hero">
+        <div className="accent-chip" style={{ marginBottom: 20 }}>📄 Legal Document</div>
+        <h1 className="static-hero-title">
+          Terms &amp;<br />
+          <span className="static-hero-accent">Conditions.</span>
+        </h1>
+        <p className="static-hero-sub">
+          Last updated: August 2026 · Official Locare Rental Service Agreement
+        </p>
       </div>
 
-      {/* Interactive Controls Bar */}
-      <div className="card p-4 mb-8 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Category Tabs */}
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          {[
-            { id: "all", label: "All Policies" },
-            { id: "rental", label: "Rental Terms" },
-            { id: "deposits", label: "Security Deposits" },
-            { id: "latefees", label: "Late Fines" },
-            { id: "cancellation", label: "Cancellations" },
-          ].map((tab) => (
+      {/* Filter bar */}
+      <div style={{
+        background: "var(--bg)",
+        border: "var(--border-thin)",
+        borderRadius: 18, padding: "16px 20px",
+        marginBottom: 20,
+        display: "flex", flexWrap: "wrap", alignItems: "center",
+        justifyContent: "space-between", gap: 12,
+        boxShadow: "var(--shadow)",
+      }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === tab.id
-                  ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                  : "bg-slate-800/80 text-slate-300 hover:bg-slate-700"
-              }`}
+              className={`filter-pill ${activeTab === tab.id ? "filter-pill-active" : ""}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-
-        {/* Search Input */}
-        <div className="relative w-full md:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div style={{ position: "relative" }}>
+          <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--text-muted)", pointerEvents: "none" }} />
           <input
             type="text"
             placeholder="Search policies..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="form-input pl-9 text-xs w-full py-2 bg-slate-950/80 border-slate-700 rounded-xl"
+            style={{
+              padding: "8px 14px 8px 34px",
+              border: "1.5px solid rgba(13,13,13,0.2)",
+              borderRadius: 99,
+              fontSize: "0.8rem",
+              fontWeight: 500,
+              background: "var(--bg-alt)",
+              color: "var(--text)",
+              outline: "none",
+              width: 200,
+            }}
           />
         </div>
       </div>
 
-      {/* Policy Sections Cards */}
-      <div className="space-y-6">
-        {filteredSections.length > 0 ? (
-          filteredSections.map((section) => {
-            const Icon = section.icon;
-            return (
-              <div key={section.id} className="card p-6 bg-slate-900/70 border border-slate-800 rounded-2xl hover:border-slate-700 transition-all">
-                <div className="flex items-center gap-3 mb-4">
-                  <Icon className="w-5 h-5 text-emerald-400" />
-                  <h2 className="text-xl font-bold text-white">{section.title}</h2>
-                </div>
-                <ul className="space-y-3">
-                  {section.content.map((point, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-sm text-slate-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })
-        ) : (
-          <div className="text-center py-12 card bg-slate-900/40 border border-slate-800 rounded-2xl">
-            <HelpCircle className="w-12 h-12 text-slate-500 mx-auto mb-3 animate-bounce" />
-            <h3 className="text-lg font-bold text-slate-200">No policies found</h3>
-            <p className="text-xs text-slate-400 mt-1">Try adjusting your search terms or filters above.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Print & Support Action Footer */}
-      <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 border border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h4 className="text-base font-bold text-white">Have questions about our terms?</h4>
-          <p className="text-xs text-slate-400 mt-0.5">Our support team is available 24/7 to assist with your rental queries.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.print()}
-            className="btn btn-ghost btn-sm text-xs font-bold border border-slate-700"
-          >
-            🖨️ Print Policy
+      {/* Sections */}
+      {filteredSections.length === 0 ? (
+        <div className="empty-state">
+          <span className="empty-state-icon">🔍</span>
+          <h3 className="empty-state-title">No Policies Found</h3>
+          <p className="empty-state-sub">Try adjusting your search or clearing the filter.</p>
+          <button onClick={() => { setSearchTerm(""); setActiveTab("all"); }} className="btn btn-yellow">
+            Reset Filters
           </button>
-          <Link href="/customer/contact" className="btn btn-primary btn-sm text-xs font-bold">
-            Contact Support ➔
-          </Link>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {filteredSections.map((section) => (
+            <div key={section.id} className="static-section" style={{ borderLeft: `4px solid ${section.accent}` }}>
+              <div className="static-section-title">
+                <span className="section-num" style={{ background: section.accent, fontSize: "0.9rem" }}>{section.icon}</span>
+                {section.title}
+              </div>
+              <ul style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+                {section.content.map((point, idx) => (
+                  <li key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: section.accent,
+                      border: "1.5px solid #0D0D0D",
+                      flexShrink: 0, marginTop: 7,
+                    }} />
+                    <span className="static-body-text" style={{ margin: 0 }}>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Footer CTA */}
+      <div style={{
+        marginTop: 28, background: "var(--color-dark)",
+        border: "var(--border-thin)", borderRadius: 18, padding: "24px 24px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 16, boxShadow: "var(--shadow-lg)",
+      }}>
+        <div>
+          <h4 style={{ color: "#fff", fontWeight: 800, fontSize: "1rem", marginBottom: 4 }}>
+            Questions about our policies?
+          </h4>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem" }}>
+            Our support team is available daily to assist you.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => window.print()} className="btn btn-light btn-sm">🖨️ Print Policy</button>
+          <Link href="/customer/contact" className="btn btn-yellow btn-sm">Contact Support →</Link>
         </div>
       </div>
     </div>

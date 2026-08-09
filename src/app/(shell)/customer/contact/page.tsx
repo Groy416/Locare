@@ -2,240 +2,154 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Mail, Phone, MapPin, Clock, Send, CheckCircle, ArrowLeft, MessageSquare, HelpCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, Clock, Send, CheckCircle } from "lucide-react";
 
 export default function ContactUsPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "General Inquiry",
-    message: "",
-  });
+  const [formData, setFormData] = useState({ name: "", email: "", subject: "General Inquiry", message: "" });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 800);
+    setTimeout(() => { setLoading(false); setSubmitted(true); }, 800);
   };
 
-  const contactInfo = [
-    {
-      icon: Phone,
-      title: "Customer Support Hotline",
-      details: "+91 (800) 562-2731",
-      subtitle: "Mon - Sat: 8:00 AM - 8:00 PM EST",
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/20",
-    },
-    {
-      icon: Mail,
-      title: "Email Support",
-      details: "support@locare.com",
-      subtitle: "Fast response within 2 business hours",
-      color: "text-teal-400",
-      bg: "bg-teal-500/10",
-      border: "border-teal-500/20",
-    },
-    {
-      icon: MapPin,
-      title: "Global Headquarters",
-      details: "Locare Enterprise Towers, Suite 402",
-      subtitle: "Tech Park Boulevard, Innovation Hub",
-      color: "text-lime-400",
-      bg: "bg-lime-500/10",
-      border: "border-lime-500/20",
-    },
-    {
-      icon: Clock,
-      title: "Business & Return Hours",
-      details: "8:00 AM – 8:00 PM Daily",
-      subtitle: "Automated Returns 24/7",
-      color: "text-amber-400",
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/20",
-    },
-  ];
-
-  const faqs = [
-    {
-      q: "How do I return a rented item?",
-      a: "Items can be returned directly at our pickup hub or scheduled for courier pickup via your customer portal. Once processed, your security deposit will be automatically settled.",
-    },
-    {
-      q: "What happens if an item is returned late?",
-      a: "A standard 1-day grace period is provided. Afterward, a daily late fee (default ₹15 / $15 per day) is automatically calculated and deducted from the held deposit.",
-    },
-    {
-      q: "Can I extend my rental duration?",
-      a: "Yes! You can extend active rentals through customer support or your customer dashboard prior to the scheduled return date.",
-    },
-    {
-      q: "How do security deposit refunds work?",
-      a: "Security deposits are held in escrow and automatically released within 24-48 hours following successful return inspection.",
-    },
+  const contacts = [
+    { icon: "📞", title: "Support Hotline", detail: "+91 (800) 562-2731", sub: "Mon – Sat: 8 AM – 8 PM EST", accent: "#5BC8F5" },
+    { icon: "✉️", title: "Email Support", detail: "support@locare.com", sub: "Response within 2 business hours", accent: "#86EFAC" },
+    { icon: "📍", title: "Headquarters", detail: "Locare Enterprise Towers, Suite 402", sub: "Tech Park Boulevard, Innovation Hub", accent: "#F5E642" },
+    { icon: "🕐", title: "Business Hours", detail: "8:00 AM – 8:00 PM Daily", sub: "Automated Returns 24/7", accent: "#C4B5FD" },
   ];
 
   return (
-    <div className="page-shell animate-fade-in max-w-6xl mx-auto px-4 py-8">
-      {/* Back Link */}
-      <div className="mb-6">
-        <Link href="/customer" className="inline-flex items-center text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Products
-        </Link>
-      </div>
+    <div className="static-page">
+      <Link href="/customer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: 28 }}>
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to Products
+      </Link>
 
-      {/* Header Banner */}
-      <div className="text-center max-w-3xl mx-auto mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
-          <MessageSquare className="w-3.5 h-3.5" /> 24/7 Support Center
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">Get in Touch with Locare</h1>
-        <p className="text-base text-slate-300">
-          Have questions about a rental booking, security deposit refund, or vendor onboarding? We are here to help!
+      {/* Hero */}
+      <div className="static-hero">
+        <div className="accent-chip" style={{ background: "#5BC8F5", marginBottom: 20 }}>📬 Get In Touch</div>
+        <h1 className="static-hero-title">
+          We'd Love to<br />
+          <span className="static-hero-accent">Hear From You.</span>
+        </h1>
+        <p className="static-hero-sub">
+          Have a question about renting, returns, or our ERP platform? Our support team is here to help.
         </p>
       </div>
 
-      {/* Contact Cards Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-        {contactInfo.map((info, idx) => {
-          const Icon = info.icon;
-          return (
-            <div key={idx} className="card p-6 bg-slate-900/80 border border-slate-800 rounded-2xl flex flex-col items-start hover:border-slate-700 transition-all">
-              <div className={`p-3 rounded-xl ${info.bg} ${info.border} border ${info.color} mb-4`}>
-                <Icon className="w-6 h-6" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">{info.title}</h3>
-              <p className="text-sm font-extrabold text-slate-200 mb-1">{info.details}</p>
-              <p className="text-xs text-slate-400">{info.subtitle}</p>
-            </div>
-          );
-        })}
+      {/* Contact cards */}
+      <div className="contact-grid">
+        {contacts.map((c) => (
+          <div key={c.title} className="contact-card">
+            <div style={{
+              width: 48, height: 48, background: c.accent,
+              border: "1.5px solid #0D0D0D", borderRadius: 12,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "1.4rem", margin: "0 auto 14px",
+            }}>{c.icon}</div>
+            <h3 style={{ fontSize: "0.85rem", fontWeight: 800, marginBottom: 6 }}>{c.title}</h3>
+            <p style={{ fontSize: "0.82rem", fontWeight: 700, marginBottom: 2 }}>{c.detail}</p>
+            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{c.sub}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Main Grid: Form + FAQ */}
-      <div className="grid lg:grid-cols-12 gap-8 mb-12">
-        {/* Contact Form */}
-        <div className="lg:col-span-7 card p-8 bg-slate-900/70 border border-slate-800 rounded-3xl">
-          <h2 className="text-2xl font-extrabold text-white mb-2 flex items-center gap-2">
-            <Send className="w-5 h-5 text-emerald-400" /> Send Us a Message
-          </h2>
-          <p className="text-xs text-slate-400 mb-6">Fill out the form below and our team will get back to you promptly.</p>
-
-          {submitted ? (
-            <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center animate-fade-in">
-              <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-              <h3 className="text-lg font-bold text-white mb-1">Message Sent Successfully!</h3>
-              <p className="text-xs text-slate-300 mb-4">
-                Thank you for contacting Locare Support. A representative has received your request and will respond shortly.
-              </p>
-              <button
-                onClick={() => {
-                  setSubmitted(false);
-                  setFormData({ name: "", email: "", subject: "General Inquiry", message: "" });
-                }}
-                className="btn btn-ghost btn-sm text-xs font-bold"
-              >
-                Send Another Message
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label text-xs">Your Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Sarah Chen"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="form-input text-xs w-full bg-slate-950/80 border-slate-700 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="form-label text-xs">Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="sarah@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="form-input text-xs w-full bg-slate-950/80 border-slate-700 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="form-label text-xs">Inquiry Topic</label>
-                <select
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="form-input text-xs w-full bg-slate-950/80 border-slate-700 rounded-xl"
-                >
-                  <option value="General Inquiry">General Inquiry</option>
-                  <option value="Booking & Rental Support">Booking & Rental Support</option>
-                  <option value="Security Deposit & Fines">Security Deposit & Fines</option>
-                  <option value="Vendor Onboarding">Vendor Onboarding</option>
-                  <option value="Technical Support">Technical Support</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label text-xs">Message</label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="How can we assist you with your rental or account?"
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="form-input text-xs w-full bg-slate-950/80 border-slate-700 rounded-xl resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn btn-primary btn-block btn-lg text-sm font-extrabold"
-              >
-                {loading ? "Sending Message..." : "Send Message ➔"}
-              </button>
-            </form>
-          )}
+      {/* Contact Form */}
+      <div className="static-section">
+        <div className="static-section-title">
+          <span className="section-num">✍</span>
+          Send Us a Message
         </div>
 
-        {/* FAQ Accordion Column */}
-        <div className="lg:col-span-5 flex flex-col justify-between">
-          <div className="card p-8 bg-slate-900/70 border border-slate-800 rounded-3xl mb-6">
-            <h2 className="text-xl font-extrabold text-white mb-2 flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-lime-400" /> Frequently Asked Questions
-            </h2>
-            <p className="text-xs text-slate-400 mb-6">Quick answers to common queries.</p>
-
-            <div className="space-y-4">
-              {faqs.map((faq, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
-                  <h4 className="text-sm font-bold text-white mb-1.5">{faq.q}</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed">{faq.a}</p>
-                </div>
-              ))}
-            </div>
+        {submitted ? (
+          <div style={{ textAlign: "center", padding: "40px 20px" }}>
+            <div style={{ fontSize: "3rem", marginBottom: 12 }}>✅</div>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: 900, marginBottom: 8 }}>Message Sent!</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              We'll get back to you at <strong>{formData.email}</strong> within 2 business hours.
+            </p>
           </div>
-
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" />
-              <span className="text-xs text-slate-300">Need instant admin help?</span>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Full Name *</label>
+                <input
+                  type="text" required className="form-input"
+                  placeholder="John Smith"
+                  value={formData.name}
+                  onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Email Address *</label>
+                <input
+                  type="email" required className="form-input"
+                  placeholder="john@company.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                />
+              </div>
             </div>
-            <Link href="/auth/login" className="btn btn-ghost btn-sm text-xs font-bold">
-              Admin Login ➔
-            </Link>
-          </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Subject</label>
+              <select
+                className="form-select"
+                value={formData.subject}
+                onChange={(e) => setFormData((p) => ({ ...p, subject: e.target.value }))}
+              >
+                <option>General Inquiry</option>
+                <option>Rental Support</option>
+                <option>Return & Deposit</option>
+                <option>ERP / Admin Access</option>
+                <option>Billing & Payments</option>
+                <option>Technical Issue</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Message *</label>
+              <textarea
+                required rows={5} className="form-textarea"
+                placeholder="Describe your question or issue in detail..."
+                value={formData.message}
+                onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-yellow"
+              disabled={loading}
+              style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 8 }}
+            >
+              {loading ? "Sending..." : (<><Send className="w-4 h-4" /> Send Message</>)}
+            </button>
+          </form>
+        )}
+      </div>
+
+      {/* FAQ quick-links */}
+      <div className="static-section">
+        <div className="static-section-title">
+          <span className="section-num" style={{ background: "#86EFAC" }}>?</span>
+          Quick FAQ
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+          {[
+            { q: "How do I return a rented item?", a: "Go to My Rentals, click the item, and select Return. Our system auto-calculates any late fees." },
+            { q: "When does my security deposit come back?", a: "Within 24 hours after our team marks your return as verified and damage-free." },
+            { q: "Can I extend my rental period?", a: "Yes! Contact support before the return date and we'll adjust the duration with updated pricing." },
+          ].map((faq, i) => (
+            <div key={i} style={{ padding: "14px 16px", border: "1.5px solid rgba(13,13,13,0.1)", borderRadius: 10 }}>
+              <p style={{ fontWeight: 700, fontSize: "0.875rem", marginBottom: 4 }}>{faq.q}</p>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{faq.a}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
