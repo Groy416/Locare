@@ -417,8 +417,49 @@ async function main() {
       ]
     };
     
+    function getProductImage(name: string, fallbackPool: string[], idx: number): string {
+      const n = name.toLowerCase();
+      // Clothing
+      if (n.includes("shirt") || n.includes("blouse") || n.includes("kurta")) return "https://images.unsplash.com/photo-1596755094514-f87e32f85e23?w=800&q=80";
+      if (n.includes("chinos") || n.includes("trousers") || n.includes("jeans") || n.includes("sweatpants") || n.includes("shorts")) return "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800&q=80";
+      if (n.includes("blazer") || n.includes("jacket") || n.includes("coat") || n.includes("shacket")) return "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80";
+      if (n.includes("tee") || n.includes("polo")) return "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80";
+      if (n.includes("dress") || n.includes("skirt")) return "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80";
+      if (n.includes("sweater") || n.includes("hoodie")) return "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=80";
+      if (n.includes("vest")) return "https://images.unsplash.com/photo-1588147634456-e69f8846c26b?w=800&q=80";
+    
+      // Footwear
+      if (n.includes("running") || n.includes("sneaker")) return "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80";
+      if (n.includes("boot")) return "https://images.unsplash.com/photo-1605812860427-4024433a70fd?w=800&q=80";
+      if (n.includes("oxford") || n.includes("derby") || n.includes("brogue")) return "https://images.unsplash.com/photo-1614252209825-980f82662055?w=800&q=80";
+      if (n.includes("sandal") || n.includes("mule") || n.includes("slide") || n.includes("thong") || n.includes("espadrille") || n.includes("flat") || n.includes("moccasin")) return "https://images.unsplash.com/photo-1562183241-b937e95585b6?w=800&q=80";
+      if (n.includes("heel")) return "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80";
+      if (n.includes("cleat")) return "https://images.unsplash.com/photo-1611314488346-60195e63e143?w=800&q=80";
+      if (n.includes("shoe")) return "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&q=80";
+    
+      // Electronics
+      if (n.includes("projector") || n.includes("monitor") || n.includes("tv")) return "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=800&q=80";
+      if (n.includes("speaker") || n.includes("subwoofer")) return "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&q=80";
+      if (n.includes("camera") || n.includes("dslr")) return "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80";
+      if (n.includes("drone")) return "https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80";
+      if (n.includes("laptop") || n.includes("tablet") || n.includes("console") || n.includes("router")) return "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80";
+      if (n.includes("mic") || n.includes("mixer") || n.includes("headphones") || n.includes("headset")) return "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&q=80";
+      if (n.includes("light") || n.includes("flash") || n.includes("spotlight")) return "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?w=800&q=80";
+      if (n.includes("generator") || n.includes("washer") || n.includes("meter")) return "https://images.unsplash.com/photo-1606166325683-e6deb697d301?w=800&q=80";
+    
+      // Furniture
+      if (n.includes("table") || n.includes("desk")) return "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800&q=80";
+      if (n.includes("sofa") || n.includes("armchair") || n.includes("couch")) return "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80";
+      if (n.includes("chair") || n.includes("stool") || n.includes("bench") || n.includes("pouf")) return "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=800&q=80";
+      if (n.includes("bed") || n.includes("mattress") || n.includes("cot")) return "https://images.unsplash.com/photo-1505693314120-0d443867891c?w=800&q=80";
+      if (n.includes("cabinet") || n.includes("wardrobe") || n.includes("bookcase") || n.includes("shelf")) return "https://images.unsplash.com/photo-1595526114101-10ce5b1f7d46?w=800&q=80";
+      if (n.includes("lamp") || n.includes("mirror") || n.includes("rug")) return "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&q=80";
+    
+      return fallbackPool[idx % fallbackPool.length];
+    }
+    
     const pool = categoryPools[meta.catName] || [meta.image];
-    const dynamicImageUrl = pool[index % pool.length];
+    const dynamicImageUrl = getProductImage(tmpl.name, pool, index);
 
     const product = await prisma.product.create({
       data: {
