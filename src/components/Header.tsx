@@ -141,12 +141,12 @@ export default function Header() {
 
         {/* Search Bar */}
         {activeRole === "customer" && (
-          <form onSubmit={handleSearchSubmit} className="header-search-form relative flex items-center flex-1 max-w-md mx-2 sm:mx-4">
+          <form onSubmit={handleSearchSubmit} className="header-search-form relative flex items-center flex-1 max-w-xl mx-2 sm:mx-6">
             <div className="relative w-full flex items-center">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none transition-colors" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 pointer-events-none transition-colors" />
               <input
                 type="text"
-                className="w-full h-10 bg-slate-900/90 text-xs sm:text-sm text-slate-100 placeholder-slate-400 rounded-full pl-10 pr-14 border border-slate-800 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-500/30 transition-all shadow-inner"
+                className="w-full h-11 bg-slate-900/90 text-sm text-slate-100 placeholder-slate-400 rounded-full pl-11 pr-20 border border-slate-700 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-500/30 transition-all shadow-inner"
                 placeholder="Search equipment, gear & tools..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
