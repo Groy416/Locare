@@ -2,60 +2,61 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { products as seedProducts } from "@/lib/data";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    let dbProducts = await prisma.product.findMany({
-      orderBy: { name: "asc" },
-      include: {
-        variants: {
-          include: {
-            attributeValues: {
-              include: {
-                attributeValue: {
-                  include: { attribute: true },
-                },
-              },
+    const { searchParams } = new URL(request.url);
+    const pageParam  = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+
+    const isPaginated = pageParam !== null;
+    const page  = Math.max(1, parseInt(pageParam  ?? "1",  10) || 1);
+    const limit = Math.max(1, parseInt(limitParam ?? "20", 10) || 20);
+    const skip  = (page - 1) * limit;
+
+    const include = {
+      variants: {
+        include: {
+          attributeValues: {
+            include: {
+              attributeValue: { include: { attribute: true } },
             },
           },
         },
-        categoryRef: true,
-        images: true,
       },
-    });
+      categoryRef: true,
+      images: true,
+    } as const;
 
-    // Auto-seed database if empty
-    if (dbProducts.length === 0) {
+    const [dbProducts, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        orderBy: { id: "asc" },
+        include,
+        ...(isPaginated ? { skip, take: limit } : {}),
+      }),
+      isPaginated ? prisma.product.count() : Promise.resolve(0),
+    ]);
+
+    // Auto-seed if database is empty
+    if (dbProducts.length === 0 && !isPaginated) {
       for (const prod of seedProducts) {
         await prisma.product.create({
           data: {
-            name: prod.name,
-            description: prod.description,
-            category: prod.category,
-            image: prod.image,
-            rentalUnit: prod.rentalUnit,
-            price: prod.price,
-            securityDeposit: prod.securityDeposit,
-            inStock: prod.inStock,
+            name: prod.name, description: prod.description, category: prod.category,
+            image: prod.image, rentalUnit: prod.rentalUnit, price: prod.price,
+            securityDeposit: prod.securityDeposit, inStock: prod.inStock,
           },
         }).catch(() => {});
       }
-      dbProducts = await prisma.product.findMany({
-        orderBy: { name: "asc" },
-        include: {
-          variants: {
-            include: {
-              attributeValues: {
-                include: {
-                  attributeValue: {
-                    include: { attribute: true },
-                  },
-                },
-              },
-            },
-          },
-          categoryRef: true,
-          images: true,
-        },
+      const refetched = await prisma.product.findMany({ orderBy: { id: "asc" }, include });
+      return NextResponse.json(refetched);
+    }
+
+    if (isPaginated) {
+      return NextResponse.json({
+        products: dbProducts,
+        totalCount,
+        page,
+        totalPages: Math.ceil(totalCount / limit),
       });
     }
 
