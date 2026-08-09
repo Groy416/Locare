@@ -389,13 +389,18 @@ async function main() {
     const stock = meta.stockMin + Math.floor(Math.random() * (meta.stockMax - meta.stockMin));
     const unit = pick(meta.units);
 
+    // Extract the last word of the template name to use as a relevant image keyword
+    const keyword = encodeURIComponent(tmpl.name.split(" ").pop() || meta.catName);
+    const dynamicImageUrl = `https://loremflickr.com/800/800/${keyword}?random=${index}`;
+
     const product = await prisma.product.create({
       data: {
         name: tmpl.name + suffix,
         description: tmpl.desc,
         category: meta.catName,
         brand: tmpl.brand,
-        image: meta.image,
+        image: dynamicImageUrl,
+        imageUrl: dynamicImageUrl,
         rentalUnit: unit,
         price,
         securityDeposit: deposit,
