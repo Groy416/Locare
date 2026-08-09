@@ -388,10 +388,37 @@ async function main() {
     const deposit = Math.round(meta.depositMin + Math.random() * (meta.depositMax - meta.depositMin));
     const stock = meta.stockMin + Math.floor(Math.random() * (meta.stockMax - meta.stockMin));
     const unit = pick(meta.units);
-
-    // Use Pollinations AI to generate a highly accurate photo based on the exact product name
-    const prompt = encodeURIComponent(`product photography of ${tmpl.name} ${meta.catName}, clean studio lighting`);
-    const dynamicImageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=800&nologo=true&seed=${index}`;
+    // Stable high-quality Unsplash pools per category to prevent 429 rate limiting on the client
+    const categoryPools: Record<string, string[]> = {
+      "Clothing": [
+        "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800&q=80",
+        "https://images.unsplash.com/photo-1596755094514-f87e32f85e23?w=800&q=80",
+        "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=800&q=80",
+        "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=80",
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80"
+      ],
+      "Footwear": [
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80",
+        "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&q=80",
+        "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=800&q=80",
+        "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800&q=80"
+      ],
+      "Electronics": [
+        "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80",
+        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
+        "https://images.unsplash.com/photo-1511385348-a52b4a160dc2?w=800&q=80",
+        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800&q=80"
+      ],
+      "Furniture": [
+        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80",
+        "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=80",
+        "https://images.unsplash.com/photo-1505691938895-1758d7def515?w=800&q=80",
+        "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=800&q=80"
+      ]
+    };
+    
+    const pool = categoryPools[meta.catName] || [meta.image];
+    const dynamicImageUrl = pool[index % pool.length];
 
     const product = await prisma.product.create({
       data: {
