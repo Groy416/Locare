@@ -217,7 +217,17 @@ export default function AdminProductsPage() {
                 }}
               >
                 <div>
-                  <ProductIcon category={prod.category} size="sm" />
+                  {prod.imageUrl && (prod.imageUrl.startsWith("/") || prod.imageUrl.startsWith("http")) ? (
+                    <div style={{ width: "100%", height: "140px", overflow: "hidden", borderTopLeftRadius: "var(--radius-md)", borderTopRightRadius: "var(--radius-md)" }}>
+                      <img 
+                        src={prod.imageUrl} 
+                        alt={prod.name} 
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                      />
+                    </div>
+                  ) : (
+                    <ProductIcon category={prod.category} size="sm" />
+                  )}
 
                   <div className="product-card-body">
                     <div className="flex justify-between items-center mb-1">

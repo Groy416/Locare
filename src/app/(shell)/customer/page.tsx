@@ -421,7 +421,17 @@ function CatalogContent() {
                   <Link key={product.id} href={`/customer/products/${product.id}`} className="product-card-link">
                     <article className="card product-card technical-card">
                       <div style={{ position: "relative" }}>
-                        <ProductIcon category={product.category} size="sm" />
+                        {product.imageUrl && product.imageUrl.startsWith("http") ? (
+                          <div style={{ width: "100%", height: "140px", overflow: "hidden", borderTopLeftRadius: "var(--radius-md)", borderTopRightRadius: "var(--radius-md)" }}>
+                            <img 
+                              src={product.imageUrl} 
+                              alt={product.name} 
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                            />
+                          </div>
+                        ) : (
+                          <ProductIcon category={product.category} size="sm" />
+                        )}
 
                         {isOutOfStock && (
                           <div className="out-of-stock-tech-badge" style={{ background: "#DC2626", color: "#FFFFFF", fontWeight: 800 }}>

@@ -203,7 +203,7 @@ export default function ProductDetailPage() {
         {/* Left: Product Media & Enlarged Image Display */}
         <div className="detail-left">
           <div className="card product-enlarged-card" style={{ padding: 24, textAlign: "center" }}>
-            {mainImgSrc && mainImgSrc.startsWith("/") && !mainImgSrc.includes("placeholder") ? (
+            {mainImgSrc && (mainImgSrc.startsWith("/") || mainImgSrc.startsWith("http")) && !mainImgSrc.includes("placeholder") ? (
               <img
                 src={mainImgSrc}
                 alt={product.name}

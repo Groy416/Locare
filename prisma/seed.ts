@@ -349,28 +349,28 @@ async function main() {
       templates: clothingTemplates,
       sizes: clothingSizes, colors: clothingColors, brands: clothingBrands,
       units: ["day"], priceMin: 8, priceMax: 60, depositMin: 20, depositMax: 150, stockMin: 5, stockMax: 40,
-      image: "/uploads/formal_shirt.png",
+      image: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800&q=80",
     },
     {
       catName: "Footwear", catId: catFootwear.id,
       templates: footwearTemplates,
       sizes: footwearSizes, colors: footwearColors, brands: footwearBrands,
       units: ["day"], priceMin: 12, priceMax: 80, depositMin: 30, depositMax: 200, stockMin: 3, stockMax: 20,
-      image: "/uploads/running_shoes.png",
+      image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80",
     },
     {
       catName: "Electronics", catId: catElectronics.id,
       templates: electronicsTemplates,
       sizes: electronicsSizes, colors: electronicsColors, brands: electronicsBrands,
       units: ["day", "week"], priceMin: 50, priceMax: 500, depositMin: 100, depositMax: 2000, stockMin: 1, stockMax: 10,
-      image: "/uploads/pressure_washer.png",
+      image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&q=80",
     },
     {
       catName: "Furniture", catId: catFurniture.id,
       templates: furnitureTemplates,
       sizes: furnitureSizes, colors: furnitureColors, brands: furnitureBrands,
       units: ["day", "week"], priceMin: 20, priceMax: 300, depositMin: 50, depositMax: 800, stockMin: 2, stockMax: 15,
-      image: "/uploads/excavator.png",
+      image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80",
     },
   ];
 
