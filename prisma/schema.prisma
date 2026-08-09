@@ -59,6 +59,7 @@ model Product {
   category        String
   image           String // image path or SVG illustration
   imageUrl        String? // uploaded image URL (from /api/upload)
+  brand           String? // optional brand/manufacturer name
   rentalUnit      String           @default("day") // "hour" | "day" | "week" | "month"
   price           Float // per rental unit
   securityDeposit Float
