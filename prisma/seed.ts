@@ -389,9 +389,9 @@ async function main() {
     const stock = meta.stockMin + Math.floor(Math.random() * (meta.stockMax - meta.stockMin));
     const unit = pick(meta.units);
 
-    // Extract the last word of the template name to use as a relevant image keyword
-    const keyword = encodeURIComponent(tmpl.name.split(" ").pop() || meta.catName);
-    const dynamicImageUrl = `https://loremflickr.com/800/800/${keyword}?random=${index}`;
+    // Use Pollinations AI to generate a highly accurate photo based on the exact product name
+    const prompt = encodeURIComponent(`product photography of ${tmpl.name} ${meta.catName}, clean studio lighting`);
+    const dynamicImageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=800&nologo=true&seed=${index}`;
 
     const product = await prisma.product.create({
       data: {
